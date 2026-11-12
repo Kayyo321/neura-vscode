@@ -19,7 +19,19 @@ const folder = { name: 'project', index: 0, uri: { fsPath: path.resolve('/tmp', 
 const settings = { environment: { NEURA_TEST_CONFIGURED: 'literal $(no shell); value' } };
 const workspace = { isTrusted: true, getConfiguration: () => ({ get: (key, fallback) => settings[key] ?? fallback }) };
 
-test('language server receives configured tool environment alongside inherited environment', async () => {
+function inheritedSentinel(context, suffix) {
+  const key = `NEURA_TEST_INHERITED_${suffix}`;
+  const previous = process.env[key];
+  const value = `inherited-${process.pid}`;
+  process.env[key] = value;
+  context.after(() => {
+    if (previous === undefined) delete process.env[key]; else process.env[key] = previous;
+  });
+  return { key, value };
+}
+
+test('language server receives configured tool environment alongside inherited environment', async context => {
+  const inherited = inheritedSentinel(context, 'LANGUAGE_SERVER');
   let server;
   class Client {
     constructor(_id, _name, supplied) { server = supplied; }
@@ -35,12 +47,13 @@ test('language server receives configured tool environment alongside inherited e
   try {
     assert.equal(await services.start(folder), true);
     assert.equal(server.options.env.NEURA_TEST_CONFIGURED, settings.environment.NEURA_TEST_CONFIGURED);
-    assert.equal(server.options.env.PATH, process.env.PATH);
+    assert.equal(server.options.env[inherited.key], inherited.value);
     assert.equal(server.options.env.NEURA_NO_UPDATE_CHECK, '1');
   } finally { services.dispose(); }
 });
 
-test('debugger process and launch receive tool environment with launch-specific values taking precedence', async () => {
+test('debugger process and launch receive tool environment with launch-specific values taking precedence', async context => {
+  const inherited = inheritedSentinel(context, 'DEBUGGER');
   let descriptorFactory, configurationProvider;
   const api = load('src/debug.ts', {
     vscode: {
@@ -59,7 +72,7 @@ test('debugger process and launch receive tool environment with launch-specific 
   }, { appendLine() {} });
   const descriptor = await descriptorFactory.createDebugAdapterDescriptor({ workspaceFolder: folder, configuration: {} });
   assert.equal(descriptor.options.env.NEURA_TEST_CONFIGURED, settings.environment.NEURA_TEST_CONFIGURED);
-  assert.equal(descriptor.options.env.PATH, process.env.PATH);
+  assert.equal(descriptor.options.env[inherited.key], inherited.value);
   assert.equal(descriptor.options.env.NEURA_NO_UPDATE_CHECK, '1');
   const configured = await configurationProvider.resolveDebugConfiguration(folder, { type: 'neura', program: 'main.nra', env: { NEURA_TEST_CONFIGURED: 'program override', EXTRA: 'yes' } });
   assert.equal(configured.env.NEURA_TEST_CONFIGURED, 'program override');
