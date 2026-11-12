@@ -1,0 +1,57 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Neura Virtual Assembly",
+  "scopeName": "source.nvra",
+  "fileTypes": [
+    "nvra"
+  ],
+  "patterns": [
+    {
+      "name": "comment.line.semicolon.nvra",
+      "match": ";.*$"
+    },
+    {
+      "name": "string.quoted.double.nvra",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.nvra",
+          "match": "\\\\(?:x[0-9a-fA-F]{2}|.)"
+        }
+      ]
+    },
+    {
+      "name": "keyword.control.nvra",
+      "match": "\\b(?:nvr|profile|entry|type|constant|graph|node|import|function|block|exit|layout|field|global|source|name|section|hint|transferable|version)\\b"
+    },
+    {
+      "name": "storage.modifier.nvra",
+      "match": "\\b(?:inputs|outputs|parameters|success|error|result|frame|selector|arguments|assign|resume|error-resume|reason|bytes|signed|unsigned|float|text|array|void|reference|object|fields|offset|length|align)\\b"
+    },
+    {
+      "name": "entity.name.function.nvra",
+      "match": "\\b(?:host|call|tail-call|return|continue|branch|trap|allocate|load|store|spawn|scope|scheduler|join|select|task_scope|scheduler_call)\\b"
+    },
+    {
+      "name": "support.function.nvra",
+      "match": "\\b(?:identity|relu|step|threshold|linear|constant|add|multiply|maximum|minimum)\\b"
+    },
+    {
+      "name": "variable.other.property.nvra",
+      "match": "\\b(?:constant|frame|global|argument):\\d+(?::\\d+)?\\b"
+    },
+    {
+      "name": "constant.numeric.nvra",
+      "match": "(?<!\\w)-?(?:\\d+\\.\\d*|\\d+)(?:[eE][+-]?\\d+)?\\b"
+    },
+    {
+      "name": "punctuation.nvra",
+      "match": "[\\[\\]{}(),:]"
+    },
+    {
+      "name": "keyword.operator.nvra",
+      "match": "->|=>|="
+    }
+  ]
+}

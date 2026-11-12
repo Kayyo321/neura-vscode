@@ -1,0 +1,109 @@
+// Neura semantic color gallery. Build, run, or open beside a theme preview.
+let console = import:Std.Io.Console;
+let program = import:Std.Program;
+let test = import:Std.Test;
+
+/// @brief A printable object with a stable label.
+let Renderable = interface (
+    let render = func() -> string;
+);
+
+/// @brief A generically typed container.
+/// @tparam T The contained value type.
+let Box = class<T> (
+    export let value: T;
+
+    export let init = func(initial: T) {
+        value = initial;
+    };
+
+    export let get = func() -> T => value;
+);
+
+#Final
+let Account = class implements Renderable (
+    export last owner: string;
+    export let balance: int64 = 0;
+        | get: balance;
+        | set: {
+            if (value >= 0) {
+                balance = value;
+            }
+        };
+
+    export let init = func(name: string) {
+        owner = name;
+    };
+
+    /// @brief A human-readable account label with inline `balance`.
+    /// @return The owner and balance. See https://kayyo321.github.io/neura/.
+    export let render = func() -> string => owner + ": " + balance.to_string();
+);
+
+let Optional = enum<T> (None, Some(T));
+let Tree = enum (Empty, Leaf(int), Branch { left: Tree, right: Tree });
+
+#Pure
+let identity = func<T>(value: T) -> T => value;
+
+#NoDiscard
+let read_or_zero = func(value: Optional<int>) -> int {
+    return match (value) {
+        Optional.None => 0,
+        Optional.Some(number) => number,
+    };
+};
+
+let double = func(value: int) -> int => value * 2;
+
+let Gallery = module:program.Entry (
+    export let.override main = func(args: string[]) -> program.ExitCode {
+        const Banner = "Neura: pink, blue, and readable code.\n";
+        console.print_line(Banner);
+        let account: Account = new("Ada");
+        account.balance = 125;
+        last box: Box<Account> = new(account);
+        console.print_line(box.get().render());
+
+        let count: int = 3;
+        let alias: &int = count;
+        alias += 1;
+        const [label, amount]: [string, int] = ["items", count];
+        last adjusted = identity<int>(amount);
+        console.println("{}: {}", label, adjusted);
+
+        last status: string;
+        if (adjusted === 4) {
+            status = "ready";
+        } else {
+            status = "waiting";
+        }
+        console.print_line(status);
+
+        // These contextual words are valid ordinary names.
+        let last = 1;
+        let scope = 2;
+        let spawn = 3;
+        let select = 4;
+        let get = 5;
+        let set = 6;
+        let value = last + scope + spawn + select + get + set;
+        console.print_line(value.to_string());
+
+        scope (group) {
+            last task = spawn double(21);
+            console.print_line(task.join().to_string());
+        }
+        return program.ExitCode.Ok;
+    };
+);
+
+let GalleryTests = module (
+    export let test_generic_identity = func() -> void {
+        test.assert_equal_int32(7, identity<int>(7));
+    };
+
+    export let test_payload_match = func() -> void {
+        test.assert_equal_int32(9, read_or_zero(Optional<int>.Some(9)));
+    };
+);

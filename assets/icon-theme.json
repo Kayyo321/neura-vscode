@@ -1,0 +1,36 @@
+{
+  "iconDefinitions": {
+    "neura": {
+      "iconPath": "./neura.svg"
+    },
+    "nir": {
+      "iconPath": "./nir.svg"
+    },
+    "nvr": {
+      "iconPath": "./nvr.svg"
+    },
+    "nvra": {
+      "iconPath": "./nvra.svg"
+    },
+    "file": {
+      "iconPath": "./file.svg"
+    },
+    "folder": {
+      "iconPath": "./folder.svg"
+    }
+  },
+  "file": "file",
+  "folder": "folder",
+  "folderExpanded": "folder",
+  "fileExtensions": {
+    "nra": "neura",
+    "nir": "nir",
+    "nvr": "nvr",
+    "nvra": "nvra"
+  },
+  "languageIds": {
+    "neura": "neura",
+    "neurair": "nir",
+    "nvra": "nvra"
+  }
+}

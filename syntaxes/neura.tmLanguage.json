@@ -1,0 +1,663 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Neura",
+  "scopeName": "source.neura",
+  "fileTypes": [
+    "nra"
+  ],
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#tags"
+    },
+    {
+      "include": "#declarations"
+    },
+    {
+      "include": "#generic-parameters"
+    },
+    {
+      "include": "#parameters"
+    },
+    {
+      "include": "#primitives"
+    },
+    {
+      "include": "#accessors"
+    },
+    {
+      "include": "#contextual"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#type-arguments"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#members"
+    },
+    {
+      "include": "#punctuation"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.documentation.neura",
+          "begin": "^(\\s*)(///)(?!/)",
+          "beginCaptures": {
+            "2": {
+              "name": "punctuation.definition.comment.neura"
+            }
+          },
+          "end": "$",
+          "patterns": [
+            {
+              "name": "meta.documentation.parameter.neura",
+              "match": "([@\\\\](?:param|tparam))(?:(\\[[ \\t]*(?:in|out|in,out|out,in)[ \\t]*\\]))?[ \\t]+([A-Za-z_][A-Za-z_0-9]*)",
+              "captures": {
+                "1": {
+                  "name": "storage.type.documentation.command.neura"
+                },
+                "2": {
+                  "name": "storage.modifier.documentation.direction.neura"
+                },
+                "3": {
+                  "name": "variable.parameter.documentation.neura"
+                }
+              }
+            },
+            {
+              "name": "storage.type.documentation.command.neura",
+              "match": "[@\\\\](?:brief|details|return|returns|retval|see|sa|ref|link|endlink|code|endcode|warning|note|attention|deprecated|since|version|author|throws|exception|pre|post|invariant|example|todo|copydoc|c|p|a|b|e|em)\\b"
+            },
+            {
+              "name": "markup.inline.raw.neura",
+              "begin": "`",
+              "end": "`|$",
+              "patterns": [
+                {
+                  "name": "constant.character.escape.neura",
+                  "match": "\\\\."
+                }
+              ]
+            },
+            {
+              "name": "markup.underline.link.neura",
+              "match": "https?://[^\\s<>]+"
+            },
+            {
+              "name": "markup.underline.link.neura",
+              "match": "\\[[^\\]\\r\\n]+\\]\\([^\\)\\r\\n]+\\)"
+            },
+            {
+              "name": "markup.bold.neura",
+              "match": "\\*\\*[^*\\r\\n]+\\*\\*"
+            }
+          ]
+        },
+        {
+          "name": "comment.line.double-slash.neura",
+          "begin": "//",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.neura"
+            }
+          },
+          "end": "$",
+          "patterns": [
+            {
+              "name": "keyword.other.todo.neura",
+              "match": "\\b(?:TODO|FIXME|NOTE|HACK|XXX)\\b"
+            }
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.neura",
+      "begin": "\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.neura"
+        }
+      },
+      "end": "(\")|(?=$)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.string.end.neura"
+        }
+      },
+      "patterns": [
+        {
+          "name": "constant.character.escape.neura",
+          "match": "\\\\[nrt\\\\\"]"
+        },
+        {
+          "name": "invalid.illegal.escape.neura",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "invalid.illegal.numeric.neura",
+          "match": "\\b(?>\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?)[A-Za-z_]\\w*\\b"
+        },
+        {
+          "name": "constant.numeric.float.neura",
+          "match": "\\b(?:\\d+\\.\\d+(?:[eE][+-]?\\d+)?|\\d+[eE][+-]?\\d+)\\b"
+        },
+        {
+          "name": "constant.numeric.integer.decimal.neura",
+          "match": "\\b\\d+\\b"
+        }
+      ]
+    },
+    "primitives": {
+      "name": "support.type.primitive.neura",
+      "match": "\\b(?:u?int(?:8|16|32|64)?|byte|float(?:16|32|64)?|bfloat16|bool|string|void)\\b"
+    },
+    "tags": {
+      "name": "meta.annotation.neura",
+      "match": "(#)([A-Za-z_][A-Za-z_0-9]*)",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.annotation.neura"
+        },
+        "2": {
+          "name": "entity.name.tag.neura"
+        }
+      }
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*class\\b)",
+          "captures": {
+            "1": {
+              "name": "storage.type.binding.neura"
+            },
+            "2": {
+              "name": "storage.modifier.neura"
+            },
+            "3": {
+              "name": "entity.name.type.class.neura"
+            }
+          }
+        },
+        {
+          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*interface\\b)",
+          "captures": {
+            "1": {
+              "name": "storage.type.binding.neura"
+            },
+            "2": {
+              "name": "storage.modifier.neura"
+            },
+            "3": {
+              "name": "entity.name.type.interface.neura"
+            }
+          }
+        },
+        {
+          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*enum\\b)",
+          "captures": {
+            "1": {
+              "name": "storage.type.binding.neura"
+            },
+            "2": {
+              "name": "storage.modifier.neura"
+            },
+            "3": {
+              "name": "entity.name.type.enum.neura"
+            }
+          }
+        },
+        {
+          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*module\\b)",
+          "captures": {
+            "1": {
+              "name": "storage.type.binding.neura"
+            },
+            "2": {
+              "name": "storage.modifier.neura"
+            },
+            "3": {
+              "name": "entity.name.namespace.neura"
+            }
+          }
+        },
+        {
+          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*func\\b)",
+          "captures": {
+            "1": {
+              "name": "storage.type.binding.neura"
+            },
+            "2": {
+              "name": "storage.modifier.neura"
+            },
+            "3": {
+              "name": "entity.name.function.neura"
+            }
+          }
+        },
+        {
+          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*import\\b)",
+          "captures": {
+            "1": {
+              "name": "storage.type.binding.neura"
+            },
+            "2": {
+              "name": "storage.modifier.neura"
+            },
+            "3": {
+              "name": "entity.name.namespace.alias.neura"
+            }
+          }
+        },
+        {
+          "name": "meta.binding.annotation.neura",
+          "begin": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(\\s*:)",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.binding.neura"
+            },
+            "2": {
+              "name": "storage.modifier.neura"
+            },
+            "3": {
+              "name": "variable.other.readwrite.declaration.neura"
+            },
+            "4": {
+              "name": "punctuation.separator.type.neura"
+            }
+          },
+          "end": "(?=\\s*(?:=|;|\\)|\\bin\\b))",
+          "patterns": [
+            {
+              "include": "#comments"
+            },
+            {
+              "include": "#type-arguments"
+            },
+            {
+              "include": "#primitives"
+            },
+            {
+              "name": "entity.name.type.neura",
+              "match": "\\b[A-Za-z_][A-Za-z_0-9]*\\b"
+            },
+            {
+              "name": "keyword.operator.reference.neura",
+              "match": "&"
+            },
+            {
+              "include": "#punctuation"
+            }
+          ]
+        },
+        {
+          "match": "\\b(const)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)",
+          "captures": {
+            "1": {
+              "name": "storage.modifier.readonly.neura"
+            },
+            "2": {
+              "name": "storage.modifier.neura"
+            },
+            "3": {
+              "name": "variable.other.constant.neura"
+            }
+          }
+        },
+        {
+          "match": "\\b(let|last)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.binding.neura"
+            },
+            "2": {
+              "name": "storage.modifier.neura"
+            },
+            "3": {
+              "name": "variable.other.readwrite.declaration.neura"
+            }
+          }
+        }
+      ]
+    },
+    "generic-parameters": {
+      "name": "meta.generic.parameters.neura",
+      "begin": "\\b(func|class|interface|enum)(\\s*)(<)",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.neura"
+        },
+        "3": {
+          "name": "punctuation.definition.typeparameters.begin.neura"
+        }
+      },
+      "end": ">",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.typeparameters.end.neura"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#comments"
+        },
+        {
+          "name": "meta.generic.bound.neura",
+          "begin": ":",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.separator.type.neura"
+            }
+          },
+          "end": "(?=,\\s*[A-Za-z_][A-Za-z_0-9]*\\s*:|>)",
+          "patterns": [
+            {
+              "include": "#type-arguments"
+            },
+            {
+              "include": "#primitives"
+            },
+            {
+              "name": "entity.name.type.neura",
+              "match": "\\b[A-Za-z_][A-Za-z_0-9]*\\b"
+            },
+            {
+              "name": "punctuation.section.bounds.neura",
+              "match": "[\\[\\],.]"
+            }
+          ]
+        },
+        {
+          "name": "entity.name.type.parameter.neura",
+          "match": "\\b[A-Za-z_][A-Za-z_0-9]*\\b"
+        },
+        {
+          "name": "punctuation.separator.typeparameters.neura",
+          "match": ","
+        }
+      ]
+    },
+    "type-arguments": {
+      "name": "meta.generic.arguments.neura",
+      "begin": "(?<=[A-Za-z_0-9>])(<)(?=\\s*[A-Za-z_])(?=[^;{}\\n]*>)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.typearguments.begin.neura"
+        }
+      },
+      "end": ">",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.typearguments.end.neura"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#comments"
+        },
+        {
+          "include": "#type-arguments"
+        },
+        {
+          "include": "#primitives"
+        },
+        {
+          "name": "entity.name.type.argument.neura",
+          "match": "\\b[A-Za-z_][A-Za-z_0-9]*\\b"
+        },
+        {
+          "name": "punctuation.separator.typearguments.neura",
+          "match": "[,.:\\[\\]]"
+        }
+      ]
+    },
+    "accessors": {
+      "match": "(\\|)\\s*(get|set)\\s*(:)",
+      "captures": {
+        "1": {
+          "name": "punctuation.separator.accessor.neura"
+        },
+        "2": {
+          "name": "entity.name.function.accessor.neura"
+        },
+        "3": {
+          "name": "punctuation.separator.accessor.neura"
+        }
+      }
+    },
+    "contextual": {
+      "patterns": [
+        {
+          "name": "keyword.control.scope.neura",
+          "match": "\\b(scope)(?=\\s*(?:\\{|\\(\\s*[A-Za-z_][A-Za-z_0-9]*\\s*\\)\\s*\\{))"
+        },
+        {
+          "name": "keyword.control.spawn.neura",
+          "match": "\\b(spawn)(?=\\s+[A-Za-z_][A-Za-z_0-9]*(?:\\s*[.<(]|\\b))"
+        },
+        {
+          "name": "keyword.control.select.neura",
+          "match": "\\b(select)(?=\\s*\\{)"
+        },
+        {
+          "name": "storage.type.binding.neura",
+          "match": "\\blast\\b(?=\\s+[A-Za-z_][A-Za-z_0-9]*\\b)"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.neura",
+          "match": "\\b(?:true|false)\\b"
+        },
+        {
+          "name": "constant.language.nil.neura",
+          "match": "\\bnil\\b"
+        },
+        {
+          "name": "keyword.control.neura",
+          "match": "\\b(?:if|else|while|do|for|in|break|continue|return|match)\\b"
+        },
+        {
+          "name": "keyword.operator.word.neura",
+          "match": "\\b(?:as|is|and|or)\\b"
+        },
+        {
+          "name": "keyword.control.lifecycle.neura",
+          "match": "\\b(?:new|destroy)\\b"
+        },
+        {
+          "name": "storage.modifier.neura",
+          "match": "\\b(?:export|override|static|promote|implements)\\b"
+        },
+        {
+          "name": "storage.type.neura",
+          "match": "\\b(?:let|const|func|module|class|interface|enum|singleton|import)\\b"
+        }
+      ]
+    },
+    "members": {
+      "patterns": [
+        {
+          "match": "(\\.)\\s*([A-Za-z_][A-Za-z_0-9]*)(?=\\s*(?:<[^;{}\\n]*>\\s*)?\\()",
+          "captures": {
+            "1": {
+              "name": "punctuation.accessor.neura"
+            },
+            "2": {
+              "name": "entity.name.function.member.neura"
+            }
+          }
+        },
+        {
+          "match": "(\\.)\\s*([A-Za-z_][A-Za-z_0-9]*)",
+          "captures": {
+            "1": {
+              "name": "punctuation.accessor.neura"
+            },
+            "2": {
+              "name": "variable.other.property.neura"
+            }
+          }
+        },
+        {
+          "name": "entity.name.function.call.neura",
+          "match": "\\b[A-Za-z_][A-Za-z_0-9]*(?=\\s*(?:<[^;{}\\n]*>\\s*)?\\()"
+        },
+        {
+          "name": "variable.language.neura",
+          "match": "\\b(?:this|super|instance)\\b"
+        },
+        {
+          "name": "variable.language.discard.neura",
+          "match": "\\b_\\b"
+        },
+        {
+          "name": "variable.other.readwrite.neura",
+          "match": "\\b[A-Za-z_][A-Za-z_0-9]*\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.arrow.neura",
+          "match": "->|=>"
+        },
+        {
+          "name": "keyword.operator.identity.neura",
+          "match": "==="
+        },
+        {
+          "name": "keyword.operator.assignment.neura",
+          "match": "<<=|>>=|[+*/%&^|\\-]=|=(?!=)"
+        },
+        {
+          "name": "keyword.operator.comparison.neura",
+          "match": "==|!=|<=|>=|[<>]"
+        },
+        {
+          "name": "keyword.operator.range.neura",
+          "match": "\\.{2,3}"
+        },
+        {
+          "name": "keyword.operator.logical.neura",
+          "match": "&&|\\|\\||!"
+        },
+        {
+          "name": "keyword.operator.arithmetic.neura",
+          "match": "\\+\\+|--|[+*/%\\-]"
+        },
+        {
+          "name": "keyword.operator.bitwise.neura",
+          "match": "<<|>>|[&|^~]"
+        },
+        {
+          "name": "keyword.operator.conditional.neura",
+          "match": "[?:]"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.section.block.neura",
+          "match": "[{}]"
+        },
+        {
+          "name": "punctuation.section.group.neura",
+          "match": "[()]"
+        },
+        {
+          "name": "punctuation.section.brackets.neura",
+          "match": "[\\[\\]]"
+        },
+        {
+          "name": "punctuation.terminator.statement.neura",
+          "match": ";"
+        },
+        {
+          "name": "punctuation.separator.delimiter.neura",
+          "match": ","
+        },
+        {
+          "name": "punctuation.accessor.neura",
+          "match": "\\."
+        }
+      ]
+    },
+    "parameters": {
+      "name": "meta.function.parameters.neura",
+      "begin": "(?:(?<=func)\\s*|(?<=>)\\s*)(\\()(?=\\s*(?:[A-Za-z_][A-Za-z_0-9]*\\s*:|\\)))",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.section.parameters.begin.neura"
+        }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.parameters.end.neura"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#comments"
+        },
+        {
+          "include": "#tags"
+        },
+        {
+          "match": "\\b([A-Za-z_][A-Za-z_0-9]*)(\\s*:)",
+          "captures": {
+            "1": {
+              "name": "variable.parameter.neura"
+            },
+            "2": {
+              "name": "punctuation.separator.type.neura"
+            }
+          }
+        },
+        {
+          "include": "#type-arguments"
+        },
+        {
+          "include": "#primitives"
+        },
+        {
+          "name": "entity.name.type.neura",
+          "match": "\\b[A-Za-z_][A-Za-z_0-9]*\\b"
+        },
+        {
+          "name": "keyword.operator.reference.neura",
+          "match": "&"
+        },
+        {
+          "include": "#punctuation"
+        }
+      ]
+    }
+  }
+}

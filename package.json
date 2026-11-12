@@ -1,0 +1,1034 @@
+{
+  "name": "neura-vscode",
+  "displayName": "Neura",
+  "description": "The Neura development environment: language intelligence, build, run, tests, debugging, and circuit tools.",
+  "version": "0.1.0",
+  "publisher": "Kayyo321",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kayyo321/neura-vscode.git"
+  },
+  "homepage": "https://kayyo321.github.io/neura/",
+  "bugs": {
+    "url": "https://github.com/Kayyo321/neura-vscode/issues"
+  },
+  "engines": {
+    "vscode": "^1.100.0",
+    "node": ">=20"
+  },
+  "categories": [
+    "Programming Languages",
+    "Debuggers",
+    "Testing",
+    "Formatters",
+    "Themes"
+  ],
+  "keywords": [
+    "neura",
+    "nra",
+    "language server",
+    "debugger",
+    "doxygen"
+  ],
+  "icon": "assets/icon.png",
+  "main": "./dist/extension.js",
+  "extensionKind": [
+    "workspace"
+  ],
+  "activationEvents": [
+    "onLanguage:neura",
+    "onLanguage:neurair",
+    "onLanguage:nvra",
+    "onDebug:neura",
+    "workspaceContains:**/*.nra"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Syntax and themes work in Restricted Mode. Compiler processes and workspace-controlled execution require trust."
+    },
+    "virtualWorkspaces": {
+      "supported": false
+    }
+  },
+  "scripts": {
+    "compile": "tsc --noEmit && node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "check": "tsc --noEmit",
+    "test": "node --test test/*.test.cjs tests/*.test.cjs src/runtime/*.test.cjs",
+    "test:integration": "node test/run-integration.cjs",
+    "package": "npm run compile && vsce package --allow-missing-repository",
+    "vscode:prepublish": "npm run compile"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/vscode": "1.100.0",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.6.0",
+    "esbuild": "^0.25.5",
+    "typescript": "^5.8.3",
+    "vscode-textmate": "^9.2.0",
+    "vscode-oniguruma": "^2.0.1"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "neura",
+        "aliases": [
+          "Neura",
+          "neura"
+        ],
+        "extensions": [
+          ".nra"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "neurair",
+        "aliases": [
+          "Neura IR"
+        ],
+        "extensions": [
+          ".ir"
+        ]
+      },
+      {
+        "id": "nvra",
+        "aliases": [
+          "Neura Assembly"
+        ],
+        "extensions": [
+          ".nvra"
+        ]
+      }
+    ],
+    "grammars": [
+      {
+        "language": "neura",
+        "scopeName": "source.neura",
+        "path": "./syntaxes/neura.tmLanguage.json"
+      },
+      {
+        "language": "neurair",
+        "scopeName": "source.neurair",
+        "path": "./syntaxes/neurair.tmLanguage.json"
+      },
+      {
+        "language": "nvra",
+        "scopeName": "source.nvra",
+        "path": "./syntaxes/nvra.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "neura",
+        "path": "./snippets/neura.code-snippets"
+      }
+    ],
+    "themes": [
+      {
+        "label": "Neura Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/neura-dark.json"
+      },
+      {
+        "label": "Neura Light",
+        "uiTheme": "vs",
+        "path": "./themes/neura-light.json"
+      },
+      {
+        "label": "Neura Dark Vivid",
+        "uiTheme": "vs-dark",
+        "path": "./themes/neura-dark-vivid.json"
+      },
+      {
+        "label": "Neura Light Vivid",
+        "uiTheme": "vs",
+        "path": "./themes/neura-light-vivid.json"
+      }
+    ],
+    "iconThemes": [
+      {
+        "id": "neura-icons",
+        "label": "Neura Artifacts",
+        "path": "./assets/icon-theme.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "neura.getStarted",
+        "title": "Get Started",
+        "category": "Neura",
+        "icon": "$(book)"
+      },
+      {
+        "command": "neura.install",
+        "title": "Install Toolchain",
+        "category": "Neura",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "neura.selectToolchain",
+        "title": "Select Toolchain",
+        "category": "Neura",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "neura.refreshToolchain",
+        "title": "Refresh Toolchain",
+        "category": "Neura",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "neura.doctor",
+        "title": "Check Toolchain Health",
+        "category": "Neura",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "neura.checkUpdates",
+        "title": "Check for Updates",
+        "category": "Neura",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "neura.update",
+        "title": "Update Toolchain",
+        "category": "Neura",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "neura.reopenInWsl",
+        "title": "Reopen in WSL",
+        "category": "Neura",
+        "icon": "$(remote)"
+      },
+      {
+        "command": "neura.selectTarget",
+        "title": "Select Target",
+        "category": "Neura",
+        "icon": "$(list-selection)"
+      },
+      {
+        "command": "neura.build",
+        "title": "Build",
+        "category": "Neura",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "neura.run",
+        "title": "Run",
+        "category": "Neura",
+        "icon": "$(play)"
+      },
+      {
+        "command": "neura.debug",
+        "title": "Debug",
+        "category": "Neura",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "neura.clean",
+        "title": "Clean Build Artifacts",
+        "category": "Neura",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "neura.rebuild",
+        "title": "Rebuild",
+        "category": "Neura",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "neura.check",
+        "title": "Check Source",
+        "category": "Neura",
+        "icon": "$(check)"
+      },
+      {
+        "command": "neura.runArtifact",
+        "title": "Run Existing Artifact",
+        "category": "Neura",
+        "icon": "$(play)"
+      },
+      {
+        "command": "neura.newProject",
+        "title": "Create Project",
+        "category": "Neura",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "neura.refreshProjects",
+        "title": "Refresh Projects",
+        "category": "Neura",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "neura.restartLanguageServer",
+        "title": "Restart Language Server",
+        "category": "Neura",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "neura.showOutput",
+        "title": "Show Output",
+        "category": "Neura",
+        "icon": "$(output)"
+      },
+      {
+        "command": "neura.refreshTests",
+        "title": "Refresh Tests",
+        "category": "Neura",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "neura.testFile",
+        "title": "Run File Tests",
+        "category": "Neura",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "neura.reproduceSchedule",
+        "title": "Reproduce Failing Schedule",
+        "category": "Neura",
+        "icon": "$(history)"
+      },
+      {
+        "command": "neura.showIR",
+        "title": "Show Typed IR",
+        "category": "Neura",
+        "icon": "$(symbol-method)"
+      },
+      {
+        "command": "neura.compareIR",
+        "title": "Compare Optimized IR",
+        "category": "Neura",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "neura.inspectArtifact",
+        "title": "Inspect Artifact",
+        "category": "Neura",
+        "icon": "$(file-binary)"
+      },
+      {
+        "command": "neura.decompile",
+        "title": "Decompile Image",
+        "category": "Neura",
+        "icon": "$(code)"
+      },
+      {
+        "command": "neura.explainDiagnostic",
+        "title": "Explain Diagnostic",
+        "category": "Neura",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "neura.showTags",
+        "title": "Show Tag Catalogue",
+        "category": "Neura",
+        "icon": "$(tag)"
+      },
+      {
+        "command": "neura.previewDocs",
+        "title": "Preview Documentation",
+        "category": "Neura",
+        "icon": "$(book)"
+      },
+      {
+        "command": "neura.exportDoxygen",
+        "title": "Export Doxygen Declarations",
+        "category": "Neura",
+        "icon": "$(export)"
+      },
+      {
+        "command": "neura.profile",
+        "title": "Profile Execution",
+        "category": "Neura",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "neura.record",
+        "title": "Record Execution",
+        "category": "Neura",
+        "icon": "$(record)"
+      },
+      {
+        "command": "neura.replay",
+        "title": "Replay Execution",
+        "category": "Neura",
+        "icon": "$(history)"
+      },
+      {
+        "command": "neura.taskTrace",
+        "title": "Record Task Trace",
+        "category": "Neura",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "neura.debugInput",
+        "title": "Send Program Input",
+        "category": "Neura",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "neura.debugInputEof",
+        "title": "Close Program Input",
+        "category": "Neura",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "neura.exportDiagnostics",
+        "title": "Export Diagnostic Report",
+        "category": "Neura",
+        "icon": "$(output)"
+      },
+      {
+        "command": "neura.sourceFingerprint",
+        "title": "Copy Source Fingerprint",
+        "category": "Neura",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "neura.generateDocumentation",
+        "title": "Generate or Update Documentation",
+        "category": "Neura",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "neura.circuitExplorer",
+        "title": "Explore Circuit",
+        "category": "Neura",
+        "icon": "$(circuit-board)"
+      },
+      {
+        "command": "neura.openTaskTrace",
+        "title": "Open Task Timeline",
+        "category": "Neura",
+        "icon": "$(history)"
+      },
+      {
+        "command": "neura.profileView",
+        "title": "Show Execution Cost",
+        "category": "Neura",
+        "icon": "$(graph)"
+      }
+    ],
+    "configuration": {
+      "title": "Neura",
+      "properties": {
+        "neura.toolchain.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to Neura on the workspace host. Never interpreted as a shell command.",
+          "scope": "machine-overridable"
+        },
+        "neura.sourceRoots": {
+          "type": "array",
+          "default": [],
+          "description": "Source roots passed to Neura with -I.",
+          "items": {
+            "type": "string"
+          },
+          "scope": "resource"
+        },
+        "neura.targets": {
+          "type": "array",
+          "default": [],
+          "description": "Explicit application, library, and native build targets. This is editor configuration, not a Neura package manifest.",
+          "scope": "resource",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "inputs"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "application",
+                  "library",
+                  "native"
+                ],
+                "default": "application"
+              },
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              },
+              "sourceRoots": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "output": {
+                "type": "string"
+              },
+              "cwd": {
+                "type": "string"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "env": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "buildArgs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "runArgs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "neura.build.outputDirectory": {
+          "type": "string",
+          "default": ".neura-vscode",
+          "description": "Directory for generated build artifacts.",
+          "scope": "resource"
+        },
+        "neura.build.saveBeforeBuild": {
+          "type": "boolean",
+          "default": true,
+          "description": "Save participating Neura documents before builds. Cancel when saving fails.",
+          "scope": "resource"
+        },
+        "neura.environment": {
+          "type": "object",
+          "default": {},
+          "description": "Additional tool environment on the workspace host. Prefer launch configurations for program-specific secrets.",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "scope": "resource"
+        },
+        "neura.server.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable compiler-backed language services when the selected toolchain supports LSP.",
+          "scope": "resource"
+        },
+        "neura.check.onSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check saved source when the language server is unavailable.",
+          "scope": "resource"
+        },
+        "neura.testing.include": {
+          "type": "array",
+          "default": [
+            "**/*test*.nra",
+            "**/tests/**/*.nra"
+          ],
+          "description": "Patterns containing potential test files; compiler discovery decides which functions are tests.",
+          "items": {
+            "type": "string"
+          },
+          "scope": "resource"
+        },
+        "neura.testing.watch": {
+          "type": "boolean",
+          "default": false,
+          "description": "Rediscover tests and rerun affected previously run files after changes.",
+          "scope": "resource"
+        },
+        "neura.testing.virtualTime": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use a separate virtual clock for each test.",
+          "scope": "resource"
+        },
+        "neura.testing.schedules": {
+          "type": "number",
+          "default": 1,
+          "description": "Maximum schedules explored per test.",
+          "minimum": 1,
+          "maximum": 100000,
+          "scope": "resource"
+        },
+        "neura.testing.scheduleSeed": {
+          "type": "number",
+          "default": 0,
+          "description": "Seed for reproducible schedule exploration.",
+          "minimum": 0,
+          "scope": "resource"
+        },
+        "neura.testing.timeoutMs": {
+          "type": "number",
+          "default": 60000,
+          "description": "Elapsed-time limit for a selected test-file run, including blocked host I/O. Zero disables the limit.",
+          "minimum": 0,
+          "scope": "resource"
+        },
+        "neura.inlayHints.types": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inferred type hints.",
+          "scope": "resource"
+        },
+        "neura.inlayHints.parameterNames": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show parameter-name hints when useful.",
+          "scope": "resource"
+        },
+        "neura.inlayHints.accessors": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show resolved accessor-call hints.",
+          "scope": "resource"
+        },
+        "neura.inlayHints.captures": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show captured-binding hints.",
+          "scope": "resource"
+        },
+        "neura.codeLens.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show entry-point and test actions.",
+          "scope": "resource"
+        },
+        "neura.defaultTarget": {
+          "type": "string",
+          "default": "",
+          "description": "Default target name before an explicit target has been selected.",
+          "scope": "resource"
+        },
+        "neura.build.onSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Build the selected target after saving Neura source.",
+          "scope": "resource"
+        },
+        "neura.run.restartOnChange": {
+          "type": "boolean",
+          "default": false,
+          "description": "Rebuild and restart an already running selected target after source changes.",
+          "scope": "resource"
+        },
+        "neura.toolchain.stdlibPath": {
+          "type": "string",
+          "default": "",
+          "description": "Optional standard-library directory on the workspace host; normally detected from the executable.",
+          "scope": "resource"
+        }
+      }
+    },
+    "taskDefinitions": [
+      {
+        "type": "neura",
+        "required": [
+          "action",
+          "target"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "build",
+              "run",
+              "check",
+              "test",
+              "clean"
+            ]
+          },
+          "target": {
+            "type": "string"
+          }
+        }
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "neura",
+        "label": "Neura",
+        "languages": [
+          "neura"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "program"
+            ],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Neura source or image to debug."
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "default": []
+              },
+              "cwd": {
+                "type": "string",
+                "default": "${workspaceFolder}"
+              },
+              "sourceRoots": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "default": []
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "default": true
+              },
+              "env": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "neura",
+            "request": "launch",
+            "name": "Debug Neura",
+            "program": "${file}",
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": true
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "Neura: Debug source",
+            "body": {
+              "type": "neura",
+              "request": "launch",
+              "name": "Debug Neura",
+              "program": "^\"\\${file}\"",
+              "cwd": "^\"\\${workspaceFolder}\"",
+              "stopOnEntry": true
+            }
+          }
+        ]
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "neura",
+          "title": "Neura",
+          "icon": "assets/neura.svg"
+        }
+      ]
+    },
+    "views": {
+      "neura": [
+        {
+          "id": "neura.projects",
+          "name": "Projects and Targets"
+        },
+        {
+          "id": "neura.artifacts",
+          "name": "Artifacts"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "neura.projects",
+        "contents": "Get started with Neura.\n[Install Toolchain](command:neura.install)\n[Create Project](command:neura.newProject)\n[Select Toolchain](command:neura.selectToolchain)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "neura.run",
+          "when": "resourceLangId == neura && isWorkspaceTrusted",
+          "group": "navigation@1"
+        },
+        {
+          "command": "neura.build",
+          "when": "resourceLangId == neura && isWorkspaceTrusted",
+          "group": "navigation@2"
+        },
+        {
+          "command": "neura.debug",
+          "when": "resourceLangId == neura && isWorkspaceTrusted",
+          "group": "navigation@3"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "neura.run",
+          "when": "resourceExtname == .nra && isWorkspaceTrusted",
+          "group": "neura@1"
+        },
+        {
+          "command": "neura.build",
+          "when": "resourceExtname == .nra && isWorkspaceTrusted",
+          "group": "neura@2"
+        },
+        {
+          "command": "neura.inspectArtifact",
+          "when": "resourceExtname == .nvr && isWorkspaceTrusted",
+          "group": "neura@3"
+        },
+        {
+          "command": "neura.circuitExplorer",
+          "when": "resourceExtname == .nvr && isWorkspaceTrusted",
+          "group": "neura@4"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "neura.refreshProjects",
+          "when": "view == neura.projects",
+          "group": "navigation"
+        },
+        {
+          "command": "neura.refreshTests",
+          "when": "view == workbench.view.testing",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "neura.explainDiagnostic",
+          "when": "resourceLangId == neura",
+          "group": "neura@1"
+        },
+        {
+          "command": "neura.showIR",
+          "when": "resourceLangId == neura && isWorkspaceTrusted",
+          "group": "neura@2"
+        },
+        {
+          "command": "neura.previewDocs",
+          "when": "resourceLangId == neura && isWorkspaceTrusted",
+          "group": "neura@3"
+        },
+        {
+          "command": "neura.generateDocumentation",
+          "when": "resourceLangId == neura && isWorkspaceTrusted",
+          "group": "neura@4"
+        }
+      ]
+    },
+    "walkthroughs": [
+      {
+        "id": "neura.getStarted",
+        "title": "Get Started with Neura",
+        "description": "Install, write, run, test, and debug Neura.",
+        "steps": [
+          {
+            "id": "install",
+            "title": "Set up Neura",
+            "description": "[Install](command:neura.install) or [select](command:neura.selectToolchain) a toolchain on the workspace host.",
+            "media": {
+              "markdown": "docs/walkthrough.md"
+            },
+            "completionEvents": [
+              "onCommand:neura.install",
+              "onCommand:neura.selectToolchain"
+            ]
+          },
+          {
+            "id": "project",
+            "title": "Create a project",
+            "description": "[Create a console application, library, or test project.](command:neura.newProject)",
+            "media": {
+              "markdown": "docs/walkthrough.md"
+            },
+            "completionEvents": [
+              "onCommand:neura.newProject"
+            ]
+          },
+          {
+            "id": "run",
+            "title": "Build and run",
+            "description": "Use the Run and Build buttons above the editor or entry point.",
+            "media": {
+              "markdown": "docs/walkthrough.md"
+            },
+            "completionEvents": [
+              "onCommand:neura.run"
+            ]
+          },
+          {
+            "id": "test",
+            "title": "Run tests",
+            "description": "Open the Testing view to run individual Neura tests.",
+            "media": {
+              "markdown": "docs/walkthrough.md"
+            },
+            "completionEvents": [
+              "onCommand:testing.runAll"
+            ]
+          },
+          {
+            "id": "debug",
+            "title": "Debug source",
+            "description": "Set a breakpoint and [start debugging](command:neura.debug).",
+            "media": {
+              "markdown": "docs/walkthrough.md"
+            },
+            "completionEvents": [
+              "onCommand:neura.debug"
+            ]
+          }
+        ]
+      }
+    ],
+    "semanticTokenTypes": [
+      {
+        "id": "neuraGetter",
+        "superType": "method",
+        "description": "Getter in Neura."
+      },
+      {
+        "id": "neuraSetter",
+        "superType": "method",
+        "description": "Setter in Neura."
+      },
+      {
+        "id": "neuraAccessorRead",
+        "superType": "property",
+        "description": "AccessorRead in Neura."
+      },
+      {
+        "id": "neuraAccessorWrite",
+        "superType": "property",
+        "description": "AccessorWrite in Neura."
+      },
+      {
+        "id": "neuraStorage",
+        "superType": "property",
+        "description": "Storage in Neura."
+      },
+      {
+        "id": "neuraModule",
+        "superType": "namespace",
+        "description": "Module in Neura."
+      },
+      {
+        "id": "neuraConstructor",
+        "superType": "method",
+        "description": "Constructor in Neura."
+      },
+      {
+        "id": "neuraDestructor",
+        "superType": "method",
+        "description": "Destructor in Neura."
+      }
+    ],
+    "semanticTokenModifiers": [
+      {
+        "id": "exported",
+        "description": "exported Neura symbol."
+      },
+      {
+        "id": "override",
+        "description": "override Neura symbol."
+      },
+      {
+        "id": "captured",
+        "description": "captured Neura symbol."
+      },
+      {
+        "id": "deferred",
+        "description": "deferred Neura symbol."
+      },
+      {
+        "id": "reference",
+        "description": "reference Neura symbol."
+      },
+      {
+        "id": "scopeBound",
+        "description": "scopeBound Neura symbol."
+      },
+      {
+        "id": "transferable",
+        "description": "transferable Neura symbol."
+      },
+      {
+        "id": "synchronized",
+        "description": "synchronized Neura symbol."
+      }
+    ],
+    "semanticTokenScopes": [
+      {
+        "language": "neura",
+        "scopes": {
+          "neuraGetter": [
+            "entity.name.function.neura"
+          ],
+          "neuraSetter": [
+            "entity.name.function.neura"
+          ],
+          "neuraAccessorRead": [
+            "variable.other.property.neura"
+          ],
+          "neuraAccessorWrite": [
+            "variable.other.property.neura"
+          ],
+          "neuraStorage": [
+            "variable.other.property.neura"
+          ],
+          "neuraModule": [
+            "entity.name.namespace.neura"
+          ],
+          "neuraConstructor": [
+            "entity.name.function.neura"
+          ],
+          "neuraDestructor": [
+            "entity.name.function.neura"
+          ]
+        }
+      }
+    ],
+    "problemMatchers": [
+      {
+        "name": "neura",
+        "owner": "neura",
+        "source": "Neura",
+        "fileLocation": "absolute",
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+): (error|warning)(?:\\[([^\\]]+)\\])?: (.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "code": 5,
+          "message": 6
+        }
+      }
+    ]
+  }
+}

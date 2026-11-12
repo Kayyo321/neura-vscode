@@ -1,0 +1,362 @@
+{
+  "Application entry": {
+    "prefix": [
+      "nra-main",
+      "main"
+    ],
+    "description": "Complete program using Std.Program.Entry.",
+    "body": [
+      "let console = import:Std.Io.Console;",
+      "let program = import:Std.Program;",
+      "",
+      "let ${1:App} = module:program.Entry (",
+      "    export let.override main = func(args: string[]) -> program.ExitCode {",
+      "        console.print_line(\"${2:Hello, Neura!}\");",
+      "        $0",
+      "        return program.ExitCode.Ok;",
+      "    };",
+      ");"
+    ]
+  },
+  "Module": {
+    "prefix": "nra-module",
+    "description": "Named Neura module.",
+    "body": [
+      "let ${1:ModuleName} = module (",
+      "    $0",
+      ");"
+    ]
+  },
+  "Function": {
+    "prefix": [
+      "nra-func",
+      "func"
+    ],
+    "description": "Function with explicit parameters and return type.",
+    "body": [
+      "let ${1:function_name} = func(${2:args}) -> ${3:void} {",
+      "    $0",
+      "};"
+    ]
+  },
+  "Exported function": {
+    "prefix": "nra-export-func",
+    "description": "Exported module or class function.",
+    "body": [
+      "export let ${1:function_name} = func(${2:args}) -> ${3:void} {",
+      "    $0",
+      "};"
+    ]
+  },
+  "Expression function": {
+    "prefix": "nra-func-expr",
+    "description": "Expression-bodied function.",
+    "body": [
+      "let ${1:identity} = func(${2:value}: ${3:int}) -> ${3:int} => ${4:value};$0"
+    ]
+  },
+  "Generic function": {
+    "prefix": "nra-generic-func",
+    "description": "Function with an explicit type parameter.",
+    "body": [
+      "let ${1:identity} = func<${2:T}>(${3:value}: ${2:T}) -> ${2:T} {",
+      "    return ${3:value};",
+      "};$0"
+    ]
+  },
+  "Bounded generic function": {
+    "prefix": "nra-bound-func",
+    "description": "Type parameter constrained by an interface.",
+    "body": [
+      "let ${1:render} = func<${2:T}:${3:Renderable}>(${4:value}: ${2:T}) -> ${5:string} {",
+      "    return ${4:value}.${6:render}();",
+      "};$0"
+    ]
+  },
+  "Class": {
+    "prefix": "nra-class",
+    "description": "Class declaration.",
+    "body": [
+      "let ${1:ClassName} = class (",
+      "    $0",
+      ");"
+    ]
+  },
+  "Generic class": {
+    "prefix": "nra-generic-class",
+    "description": "Generic class with a field and constructor.",
+    "body": [
+      "let ${1:Box} = class<${2:T}> (",
+      "    export let value: ${2:T};",
+      "",
+      "    export let init = func(initial: ${2:T}) {",
+      "        value = initial;",
+      "    };",
+      "    $0",
+      ");"
+    ]
+  },
+  "Interface": {
+    "prefix": "nra-interface",
+    "description": "Interface with one method requirement.",
+    "body": [
+      "let ${1:Renderable} = interface (",
+      "    let ${2:render} = func() -> ${3:string};",
+      "    $0",
+      ");"
+    ]
+  },
+  "Generic interface": {
+    "prefix": "nra-generic-interface",
+    "description": "Generic interface with one method requirement.",
+    "body": [
+      "let ${1:Comparable} = interface<${2:T}> (",
+      "    let ${3:compare_to} = func(other: ${2:T}) -> int;",
+      "    $0",
+      ");"
+    ]
+  },
+  "Constructor": {
+    "prefix": "nra-init",
+    "description": "Class constructor.",
+    "body": [
+      "export let init = func(${1:args}) {",
+      "    $0",
+      "};"
+    ]
+  },
+  "Destructor": {
+    "prefix": "nra-deinit",
+    "description": "Deterministic class cleanup function.",
+    "body": [
+      "let deinit = func() -> void {",
+      "    $0",
+      "};"
+    ]
+  },
+  "Override": {
+    "prefix": "nra-override",
+    "description": "Overriding method.",
+    "body": [
+      "export let.override ${1:method_name} = func(${2:args}) -> ${3:void} {",
+      "    $0",
+      "};"
+    ]
+  },
+  "Read-write property": {
+    "prefix": "nra-property",
+    "description": "Exported field with getter and setter clauses.",
+    "body": [
+      "export let ${1:field_name}: ${2:int} = ${3:0};",
+      "    | get: ${1:field_name};",
+      "    | set: ${1:field_name} = value;",
+      "$0"
+    ]
+  },
+  "Read-only property": {
+    "prefix": "nra-getter",
+    "description": "Exported field read through a getter.",
+    "body": [
+      "export let ${1:field_name}: ${2:int} = ${3:0};",
+      "    | get: ${1:field_name};",
+      "$0"
+    ]
+  },
+  "Validated setter": {
+    "prefix": "nra-setter",
+    "description": "Setter body; value is the implicit new-value parameter.",
+    "body": [
+      "export let ${1:field_name}: ${2:int} = ${3:0};",
+      "    | get: ${1:field_name};",
+      "    | set: {",
+      "        ${1:field_name} = ${4:value};",
+      "        $0",
+      "    };"
+    ]
+  },
+  "Enum": {
+    "prefix": "nra-enum",
+    "description": "Fieldless enum.",
+    "body": [
+      "let ${1:State} = enum (${2:Ready}, ${3:Running}, ${4:Done});$0"
+    ]
+  },
+  "Payload enum": {
+    "prefix": "nra-enum-payload",
+    "description": "Generic enum with unit and payload variants.",
+    "body": [
+      "let ${1:Optional} = enum<${2:T}> (None, Some(${2:T}));$0"
+    ]
+  },
+  "Match expression": {
+    "prefix": "nra-match",
+    "description": "Exhaustive Optional-style match.",
+    "body": [
+      "match (${1:value}) {",
+      "    ${2:Optional}.None => ${3:0},",
+      "    ${2:Optional}.Some(${4:item}) => ${4:item},",
+      "}$0"
+    ]
+  },
+  "Import": {
+    "prefix": "nra-import",
+    "description": "Explicit qualified module import.",
+    "body": [
+      "let ${1:alias} = import:${2:Std.Io.Console};$0"
+    ]
+  },
+  "Assign-once binding": {
+    "prefix": "nra-last",
+    "description": "Assign-once local binding.",
+    "body": [
+      "last ${1:name}: ${2:int} = ${3:0};$0"
+    ]
+  },
+  "Deferred assign-once binding": {
+    "prefix": "nra-last-deferred",
+    "description": "Deferred binding, assigned exactly once before use.",
+    "body": [
+      "last ${1:name}: ${2:int};",
+      "$0"
+    ]
+  },
+  "Primitive reference": {
+    "prefix": "nra-ref",
+    "description": "Non-null alias to existing mutable primitive storage.",
+    "body": [
+      "let ${1:alias}: &${2:int} = ${3:storage};$0"
+    ]
+  },
+  "For loop": {
+    "prefix": "nra-for",
+    "description": "Three-part integer for loop.",
+    "body": [
+      "for (let ${1:i}: int = 0; ${1:i} < ${2:count}; ${1:i}++) {",
+      "    $0",
+      "}"
+    ]
+  },
+  "For each": {
+    "prefix": "nra-foreach",
+    "description": "Iterate a collection or range.",
+    "body": [
+      "for (let ${1:item} in ${2:items}) {",
+      "    $0",
+      "}"
+    ]
+  },
+  "While loop": {
+    "prefix": "nra-while",
+    "description": "While loop.",
+    "body": [
+      "while (${1:condition}) {",
+      "    $0",
+      "}"
+    ]
+  },
+  "If / else": {
+    "prefix": "nra-if",
+    "description": "Conditional statement.",
+    "body": [
+      "if (${1:condition}) {",
+      "    $2",
+      "} else {",
+      "    $0",
+      "}"
+    ]
+  },
+  "Task scope": {
+    "prefix": "nra-scope",
+    "description": "Named scoped task lifetime.",
+    "body": [
+      "scope (${1:group}) {",
+      "    $0",
+      "}"
+    ]
+  },
+  "Spawn and join": {
+    "prefix": "nra-spawn",
+    "description": "Start an isolated task and join it within its scope.",
+    "body": [
+      "scope {",
+      "    last ${1:task} = spawn ${2:function_name}(${3:args});",
+      "    last ${4:result} = ${1:task}.join();",
+      "    $0",
+      "}"
+    ]
+  },
+  "Test module": {
+    "prefix": "nra-test-module",
+    "description": "Tests follow the exported test_ function convention.",
+    "body": [
+      "let test = import:Std.Test;",
+      "",
+      "let ${1:Tests} = module (",
+      "    export let test_${2:example} = func() -> void {",
+      "        test.assert_equal_int32(${3:4}, ${4:2 + 2});",
+      "        $0",
+      "    };",
+      ");"
+    ]
+  },
+  "Test function": {
+    "prefix": "nra-test",
+    "description": "Exported zero-argument void test function.",
+    "body": [
+      "export let test_${1:behavior} = func() -> void {",
+      "    ${2:test}.assert(${3:true});",
+      "    $0",
+      "};"
+    ]
+  },
+  "Documentation block": {
+    "prefix": "nra-doc",
+    "description": "Doxygen documentation using Neura /// lines.",
+    "body": [
+      "/// @brief ${1:Summary.}",
+      "/// @param ${2:value} ${3:Parameter description.}",
+      "/// @return ${4:Result description.}",
+      "$0"
+    ]
+  },
+  "Documented function": {
+    "prefix": "nra-doc-func",
+    "description": "Function with matching Doxygen parameter documentation.",
+    "body": [
+      "/// @brief ${1:Summary.}",
+      "/// @param ${2:value} ${3:Input description.}",
+      "/// @return ${4:Result description.}",
+      "let ${5:function_name} = func(${2:value}: ${6:int}) -> ${6:int} {",
+      "    return ${2:value};",
+      "};$0"
+    ]
+  },
+  "Final class": {
+    "prefix": "nra-final-class",
+    "description": "Class that cannot be subclassed.",
+    "body": [
+      "#Final",
+      "let ${1:ClassName} = class (",
+      "    $0",
+      ");"
+    ]
+  },
+  "No-discard function": {
+    "prefix": "nra-nodiscard",
+    "description": "Function whose result should be used.",
+    "body": [
+      "#NoDiscard",
+      "let ${1:calculate} = func(${2:args}) -> ${3:int} {",
+      "    return ${4:0};",
+      "};$0"
+    ]
+  },
+  "Pure function": {
+    "prefix": "nra-pure",
+    "description": "Compiler-checked pure function.",
+    "body": [
+      "#Pure",
+      "let ${1:double} = func(${2:value}: int) -> int => ${2:value} * 2;$0"
+    ]
+  }
+}
