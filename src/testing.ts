@@ -7,13 +7,14 @@ import type { Runtime } from './runtime';
 import { supportsCapability } from './runtime';
 import { scalarColumnToUtf16 } from './runtime/diagnostics';
 import { JsonLineDecoder, runProcess } from './process';
+import { toolEnvironment } from './runtime/configuration';
+import { discoveryExclusions, excludedSourcePath, mayDeclareTests, testSourceRoots } from './runtime/sources';
 
 interface TestRecord { id: string; file: string; name: string; label?: string; line: number; column: number; }
 interface TestData { record: TestRecord; folder: vscode.WorkspaceFolder; file: string; }
 interface CoverageStatement { line: number; count: number; }
 interface CoverageFile { path: string; statements: CoverageStatement[]; }
 interface CoverageReport { version: 1; granularity: 'mapped-block-line'; measurement: 'blockEntries'; files: CoverageFile[]; }
-const exclusions = '**/{.git,node_modules,build,dist,out,.neura,.neura-vscode}/**';
 const coverageByteLimit = 8 * 1024 * 1024;
 
 async function coverageDirectory(folder: vscode.WorkspaceFolder): Promise<string> {
@@ -111,7 +112,9 @@ export function registerTesting(context: vscode.ExtensionContext, runtime: Runti
         const patterns = config.get<string[]>('testing.include', ['**/*test*.nra', '**/tests/**/*.nra']);
         const uris = new Map<string, vscode.Uri>();
         for (const pattern of patterns) {
-          for (const uri of await vscode.workspace.findFiles(new vscode.RelativePattern(folder, pattern), exclusions, 2000, ownToken)) uris.set(uri.toString(), uri);
+          for (const uri of await vscode.workspace.findFiles(new vscode.RelativePattern(folder, pattern), discoveryExclusions(folder), undefined, ownToken)) {
+            if (!excludedSourcePath(path.relative(folder.uri.fsPath, uri.fsPath))) uris.set(uri.toString(), uri);
+          }
         }
         let project = controller.items.get(folder.uri.toString());
         if (!project) { project = controller.createTestItem(folder.uri.toString(), folder.name, folder.uri); controller.items.add(project); }
@@ -121,12 +124,12 @@ export function registerTesting(context: vscode.ExtensionContext, runtime: Runti
           let file = files.get(fileId);
           try {
             const contents = await fs.readFile(uri.fsPath, 'utf8');
-            if (!contents.includes('test_')) {
+            if (!mayDeclareTests(contents)) {
               project.children.delete(fileId); files.delete(fileId); next.delete(fileId); continue;
             }
-            const roots = config.get<string[]>('sourceRoots', []).flatMap(root => ['-I', path.resolve(folder.uri.fsPath, root)]);
+            const roots = testSourceRoots(folder, uri.fsPath).flatMap(root => ['-I', root]);
             const result = await runProcess(executable, ['test', '--list', '--format=json', '--workspace-root', folder.uri.fsPath, ...roots, uri.fsPath],
-              { cwd: folder.uri.fsPath, token: ownToken, timeoutMs: 20000 });
+              { cwd: folder.uri.fsPath, env: toolEnvironment(folder), token: ownToken, timeoutMs: 20000 });
             if (result.cancelled || ownToken.isCancellationRequested) return;
             if (result.code !== 0) throw new Error(result.stderr.trim() || `Discovery exited with status ${result.code}.`);
             const index = JSON.parse(result.stdout) as { version: number; tests: TestRecord[] };
@@ -207,9 +210,9 @@ export function registerTesting(context: vscode.ExtensionContext, runtime: Runti
       if (debug) {
         const first = selected[0], info = data.get(first.id); if (!info) return;
         if (selected.length > 1) void vscode.window.showInformationMessage('Debugging the first selected Neura test.');
-        const roots = vscode.workspace.getConfiguration('neura', info.folder).get<string[]>('sourceRoots', []).map(root => path.resolve(info.folder.uri.fsPath, root));
+        const roots = testSourceRoots(info.folder, info.file);
         await vscode.debug.startDebugging(info.folder, { type: 'neura', request: 'launch', name: `Debug ${info.record.name}`, program: info.file,
-          testFiles: [info.file], testFilter: info.record.id, sourceRoots: roots, cwd: info.folder.uri.fsPath, stopOnEntry: true });
+          testFiles: [info.file], testFilter: info.record.id, sourceRoots: roots, cwd: info.folder.uri.fsPath, env: toolEnvironment(info.folder), stopOnEntry: true });
         return;
       }
       run = controller.createTestRun(request, replay ? 'Reproduce saved Neura schedule' : 'Neura');
@@ -226,7 +229,7 @@ export function registerTesting(context: vscode.ExtensionContext, runtime: Runti
         if (!toolchain || !supportsCapability(toolchain, 'testReporter') || !supportsCapability(toolchain, 'testFilter')) throw new Error('Install a tooling-enabled Neura release to run individual tests.');
         if (coverage && !supportsCapability(toolchain, 'coverage')) throw new Error('Install a Neura release with mapped source-line coverage to use this profile.');
         const config = vscode.workspace.getConfiguration('neura', info.folder);
-        const roots = config.get<string[]>('sourceRoots', []).flatMap(root => ['-I', path.resolve(info.folder.uri.fsPath, root)]);
+        const roots = testSourceRoots(info.folder, info.file).flatMap(root => ['-I', root]);
         const byId = new Map(items.map(item => [data.get(item.id)!.record.id, item]));
         const args = ['test', '--reporter=json', '--error-format=json', '--workspace-root', info.folder.uri.fsPath,
           ...roots, ...items.flatMap(item => ['--filter', data.get(item.id)!.record.id])];
@@ -272,7 +275,7 @@ export function registerTesting(context: vscode.ExtensionContext, runtime: Runti
             }
           }
         });
-        const result = await runProcess(toolchain.executable, args, { cwd: info.folder.uri.fsPath, token,
+        const result = await runProcess(toolchain.executable, args, { cwd: info.folder.uri.fsPath, env: toolEnvironment(info.folder), token,
           timeoutMs: config.get<number>('testing.timeoutMs', 60000),
           onStdout: chunk => { if (!protocolError) try { decoder.push(chunk); } catch (error) { protocolError = error as Error; throw error; } } });
         if (!protocolError) try { decoder.finish(); } catch (error) { protocolError = error as Error; }
@@ -347,7 +350,7 @@ export function registerTesting(context: vscode.ExtensionContext, runtime: Runti
     (request, token) => execute(request, token, false, undefined, true), true);
   coverageProfile.loadDetailedCoverage = async (_run, fileCoverage, token) => token.isCancellationRequested ? [] : coverageDetails.get(fileCoverage) ?? [];
   context.subscriptions.push(controller,
-    vscode.commands.registerCommand('neura.refreshTests', () => discover()),
+    vscode.commands.registerCommand('neura.refreshTests', async () => { await discover(); return data.size; }),
     vscode.commands.registerCommand('neura.testFile', async (value?: string | vscode.Uri) => {
       await discover();
       const uri = value ? typeof value === 'string' ? vscode.Uri.parse(value) : value : vscode.window.activeTextEditor?.document.uri;
@@ -372,7 +375,8 @@ export function registerTesting(context: vscode.ExtensionContext, runtime: Runti
     }));
   const watcher = vscode.workspace.createFileSystemWatcher('**/*.nra');
   const changed = async (uri: vscode.Uri, deleted = false): Promise<void> => {
-    if (disposed || !vscode.workspace.isTrusted || /\/(?:\.git|node_modules|build|dist|out|\.neura|\.neura-vscode)\//.test(uri.path)) return;
+    const folder = vscode.workspace.getWorkspaceFolder(uri);
+    if (disposed || !vscode.workspace.isTrusted || !folder || excludedSourcePath(path.relative(folder.uri.fsPath, uri.fsPath))) return;
     try {
       const digest = deleted ? '<deleted>' : createHash('sha256').update(await fs.readFile(uri.fsPath)).digest('hex');
       if (observedContent.get(uri.toString()) === digest) return;
@@ -383,5 +387,9 @@ export function registerTesting(context: vscode.ExtensionContext, runtime: Runti
   context.subscriptions.push(watcher, watcher.onDidCreate(uri => { void changed(uri); }),
     watcher.onDidDelete(uri => { void changed(uri, true); }), watcher.onDidChange(uri => { void changed(uri); }),
     vscode.workspace.onDidChangeWorkspaceFolders(() => scheduleRefresh()),
+    vscode.workspace.onDidChangeConfiguration(event => {
+      if (event.affectsConfiguration('neura') || event.affectsConfiguration('files.exclude') || event.affectsConfiguration('search.exclude')) scheduleRefresh();
+    }),
+    vscode.workspace.onDidGrantWorkspaceTrust(() => scheduleRefresh()),
     { dispose() { disposed = true; if (refresh) clearTimeout(refresh); discovery?.cancel(); discovery?.dispose(); } });
 }

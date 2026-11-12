@@ -2,7 +2,7 @@
 
 The Neura development environment: install the toolchain, write and navigate `.nra` programs, build and run applications, execute individual tests, and debug the Neura Virtual Machine.
 
-This is a research release candidate. The companion toolchain is **Neura 0.2.1-rc.1**. It does not replace the stable Neura release. Follow the [RC1 installation and feature walkthrough](docs/TRY-RC1.md) to try the extension.
+This is a research release candidate. The companion toolchain is **Neura 0.2.1-rc.2**. It does not replace the stable Neura release. Follow the [RC2 installation and feature walkthrough](docs/TRY-RC2.md) to try the extension.
 
 ## Install
 

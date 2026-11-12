@@ -33,6 +33,15 @@ export interface ResolvedTarget {
 export const configuration = (folder?: vscode.WorkspaceFolder): vscode.WorkspaceConfiguration =>
     vscode.workspace.getConfiguration('neura', folder?.uri);
 
+export function toolEnvironment(folder?: vscode.WorkspaceFolder): Record<string, string> {
+    const environment = configuration(folder).get<Record<string, string>>('environment', {});
+    if (!environment || typeof environment !== 'object' || Array.isArray(environment) ||
+        Object.values(environment).some(value => typeof value !== 'string')) {
+        throw new Error('neura.environment must contain string values.');
+    }
+    return { ...environment };
+}
+
 export function resolvePath(value: string, folder: vscode.WorkspaceFolder, activeFile?: string): string {
     if (value.includes('${file}') && !activeFile) { throw new Error('Open a saved source file to resolve ${file} in a Neura target.'); }
     const expanded = value.replace(/\$\{workspaceFolder\}/g, folder.uri.fsPath)
@@ -78,7 +87,7 @@ export function resolveTarget(raw: TargetConfiguration, folder: vscode.Workspace
         output: resolvedOutput,
         cwd: resolvePath(raw.cwd ?? '.', folder, activeFile),
         args: strings(raw.args, 'args'),
-        env: { ...configuration(folder).get<Record<string, string>>('environment', {}), ...raw.env },
+        env: { ...toolEnvironment(folder), ...raw.env },
         buildArgs: strings(raw.buildArgs, 'buildArgs'),
         runArgs: strings(raw.runArgs, 'runArgs'),
     };

@@ -2,7 +2,7 @@
   "name": "neura-vscode",
   "displayName": "Neura",
   "description": "The Neura development environment: language intelligence, build, run, tests, debugging, and circuit tools.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "Kayyo321",
   "license": "Apache-2.0",
   "repository": {
@@ -637,7 +637,13 @@
         "neura.toolchain.stdlibPath": {
           "type": "string",
           "default": "",
-          "description": "Optional standard-library directory on the workspace host; normally detected from the executable.",
+          "description": "Optional standard-library source directory for language-server analysis on the workspace host; normally detected from the executable. Build, run and test commands use the selected toolchain\u2019s installed standard library.",
+          "scope": "resource"
+        },
+        "neura.editing.autoSemicolon": {
+          "type": "boolean",
+          "default": true,
+          "description": "Insert a declaration terminator when typing a named class, interface, module, enum, or function body. Inline type annotations and statement blocks keep their normal closing delimiters.",
           "scope": "resource"
         }
       }

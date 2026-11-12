@@ -5,6 +5,8 @@ import * as path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import type { Runtime } from './runtime';
 import { runProcess } from './process';
+import { toolEnvironment } from './runtime/configuration';
+import { testSourceRoots } from './runtime/sources';
 
 export interface DocumentationRange { line: number; column: number; offset: number; length: number; }
 export interface DocumentationTag { command: string; subject?: string; direction?: string; text: string; }
@@ -222,7 +224,10 @@ async function documentationIndex(document: vscode.TextDocument, runtime: Runtim
     try {
         let input = document.uri.fsPath;
         if (document.isDirty || document.isUntitled) { temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'neura-docs-')); input = path.join(temporary, path.basename(input) || 'untitled.nra'); await fs.writeFile(input, document.getText(), 'utf8'); }
-        const result = await runProcess(executable, ['docs', input], { cwd: folder.uri.fsPath, token, timeoutMs: 30000, maxOutputBytes: 16 * 1024 * 1024 });
+        const roots = new Set(testSourceRoots(folder, document.uri.fsPath));
+        if (temporary) roots.add(path.dirname(document.uri.fsPath));
+        const args = ['docs', ...[...roots].flatMap(root => ['-I', root]), input];
+        const result = await runProcess(executable, args, { cwd: folder.uri.fsPath, env: toolEnvironment(folder), token, timeoutMs: 30000, maxOutputBytes: 16 * 1024 * 1024 });
         if (result.cancelled) { throw new vscode.CancellationError(); }
         if (result.code !== 0) { throw new Error(result.stderr || 'Documentation export failed.'); }
         const index = parseDocumentationIndex(result.stdout); if (temporary) { for (const file of index.files) { file.path = document.uri.fsPath; } } return index;

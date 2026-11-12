@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { CloseAction, ErrorAction, LanguageClient, LanguageClientOptions, ServerOptions, State } from 'vscode-languageclient/node';
-import { configuration, resolvePath } from './configuration';
+import { configuration, resolvePath, toolEnvironment } from './configuration';
 import { Toolchain, Toolchains } from './toolchain';
 
 export function supportsCapability(tool: Toolchain, name: string): boolean {
@@ -54,7 +54,7 @@ export class LanguageServices implements vscode.Disposable {
         }
         const roots = configuration(folder).get<string[]>('sourceRoots', []).map(root => resolvePath(root, folder));
         const server: ServerOptions = { command: tool.executable, args: ['lsp', '--stdio'],
-            options: { cwd: folder.uri.fsPath, env: { ...process.env, NEURA_NO_UPDATE_CHECK: '1' } } };
+            options: { cwd: folder.uri.fsPath, env: { ...process.env, NEURA_NO_UPDATE_CHECK: '1', ...toolEnvironment(folder) } } };
         const options: LanguageClientOptions = {
             documentSelector: [{ scheme: 'file', language: 'neura',
                 pattern: folder.uri.fsPath.replace(/\\/g, '/').replace(/[\[\]*?{}]/g, value => `[${value}]`) + '/**/*.nra' }],

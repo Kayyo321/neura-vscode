@@ -13,7 +13,7 @@ export interface ProcessOptions {
 }
 
 export function terminateProcess(child: cp.ChildProcess): void {
-    if (child.pid === undefined || child.exitCode !== null) { return; }
+    if (child.pid === undefined || (process.platform === 'win32' && child.exitCode !== null)) { return; }
     if (process.platform === 'win32') {
         const killer = cp.spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });
         killer.on('error', () => child.kill());
@@ -23,7 +23,9 @@ export function terminateProcess(child: cp.ChildProcess): void {
             try { process.kill(-child.pid!, 'SIGKILL'); } catch { /* Already exited. */ }
         }, 1500);
         force.unref();
-        child.once('exit', () => clearTimeout(force));
+        // A descendant can keep inherited pipes open after the direct child
+        // exits. Keep escalation armed until the whole capture closes.
+        child.once('close', () => clearTimeout(force));
     }
 }
 

@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import { createHash } from 'node:crypto';
 import type { Runtime } from './runtime';
 import { runProcess } from './process';
+import { toolEnvironment } from './runtime/configuration';
 
 class GeneratedDocuments implements vscode.TextDocumentContentProvider {
   private readonly content = new Map<string, string>();
@@ -26,7 +27,7 @@ export function registerWorkbench(context: vscode.ExtensionContext, runtime: Run
     if (!vscode.workspace.isTrusted) throw new Error('Trust this workspace before running Neura tools.');
     const executable = await runtime.getExecutable(folder); if (!executable) throw new Error('Select a Neura toolchain first.');
     return vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title, cancellable: true }, async (_progress, token) => {
-      const result = await runProcess(executable, args, { cwd: folder.uri.fsPath, token, timeoutMs: 120000, maxOutputBytes });
+      const result = await runProcess(executable, args, { cwd: folder.uri.fsPath, env: toolEnvironment(folder), token, timeoutMs: 120000, maxOutputBytes });
       if (result.cancelled) throw new Error('Neura operation cancelled.');
       if (result.code !== 0) throw new Error(result.stderr || `Neura exited with status ${result.code}.`);
       if (result.stderr) output.appendLine(result.stderr);

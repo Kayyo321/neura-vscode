@@ -86,6 +86,32 @@ test('managed process enforces elapsed-time bounds', async () => {
     await assert.rejects(runProcess(process.execPath, ['-e', 'setTimeout(() => {}, 10000)'], { timeout: 50 }), /timed out/);
 });
 
+test('timeout kills descendants holding output open after their parent exits', { skip: process.platform === 'win32' }, async () => {
+    const descendant = 'process.on("SIGTERM", () => {}); console.log(process.pid); setInterval(() => {}, 1000);';
+    const parent = `require('node:child_process').spawn(process.execPath, ['-e', ${JSON.stringify(descendant)}], {stdio:'inherit'}); setInterval(() => {}, 1000);`;
+    let descendantPid;
+    let output = '';
+    let watchdog;
+    const operation = runProcess(process.execPath, ['-e', parent], {
+        timeout: 400,
+        onStdout(value) {
+            output += value;
+            const match = /^(\d+)\n/.exec(output);
+            if (match) { descendantPid = Number(match[1]); }
+        },
+    });
+    try {
+        await assert.rejects(Promise.race([operation, new Promise((_, reject) => {
+            watchdog = setTimeout(() => reject(new Error('descendant prevented timeout completion')), 5000);
+        })]), /timed out/);
+        assert.ok(Number.isInteger(descendantPid) && descendantPid > 0);
+    } finally {
+        clearTimeout(watchdog);
+        if (descendantPid) { try { process.kill(descendantPid, 'SIGKILL'); } catch { /* Already stopped. */ } }
+        await operation.catch(() => undefined);
+    }
+});
+
 test('managed process bounds captured output', async () => {
     await assert.rejects(runProcess(process.execPath, ['-e', 'process.stdout.write("x".repeat(4096))'], { maxBytes: 128 }), /capture limit/);
 });

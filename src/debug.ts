@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'node:path';
 import type { Runtime } from './runtime';
 import { supportsCapability } from './runtime';
+import { toolEnvironment } from './runtime/configuration';
 
 export function registerDebugging(context: vscode.ExtensionContext, runtime: Runtime, output: vscode.OutputChannel): void {
   context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('neura', {
@@ -14,7 +15,7 @@ export function registerDebugging(context: vscode.ExtensionContext, runtime: Run
       output.appendLine(`Starting Neura debugger on ${vscode.env.remoteName ?? process.platform}.`);
       return new vscode.DebugAdapterExecutable(executable, ['debug', '--stdio'], {
         cwd: session.configuration.cwd ?? session.workspaceFolder?.uri.fsPath,
-        env: { ...process.env, NEURA_NO_UPDATE_CHECK: '1' }
+        env: { ...process.env, NEURA_NO_UPDATE_CHECK: '1', ...toolEnvironment(session.workspaceFolder) }
       });
     }
   }));
@@ -25,6 +26,7 @@ export function registerDebugging(context: vscode.ExtensionContext, runtime: Run
       if (!configuration.program) { void vscode.window.showErrorMessage('Open a Neura source file or set program in launch.json.'); return undefined; }
       configuration.cwd ??= folder?.uri.fsPath ?? path.dirname(configuration.program);
       configuration.stopOnEntry ??= true;
+      configuration.env = { ...toolEnvironment(folder), ...configuration.env };
       configuration.sourceRoots ??= vscode.workspace.getConfiguration('neura', folder).get<string[]>('sourceRoots', []);
       if (folder && !await runtime.saveSources(folder)) return undefined;
       return configuration;

@@ -37,6 +37,9 @@ async function harness() {
   const context = { subscriptions: [] }, savedFolders = [];
   const settings = { 'testing.include': ['**/*.nra'], 'testing.watch': false };
   let controller, calls = 0, failure = false, capabilities = true, executeBehavior, allowSave = true;
+  const findRequests = [], processArgs = [], processOptions = [];
+  let foundFiles = [uriFor(filename)];
+  const exclusions = { files: {}, search: {} };
   const records = [
     { id: 'tests.nra::Tests.test_first', name: 'Tests.test_first', file: filename, line: 1, column: [...text.slice(0, text.indexOf('test_first'))].length + 1 },
     { id: 'tests.nra::Tests.test_second', name: 'Tests.test_second', file: filename, line: 1, column: [...text.slice(0, text.indexOf('test_second'))].length + 1 },
@@ -58,10 +61,12 @@ async function harness() {
     debug: { startDebugging: async () => true },
     workspace: {
       isTrusted: true, workspaceFolders: [folder], textDocuments: [],
-      getConfiguration: () => ({ get: (key, fallback) => settings[key] ?? fallback }),
+      getConfiguration: section => ({ get: (key, fallback) => section === 'neura' ? settings[key] ?? fallback : exclusions[section]?.[key] ?? fallback }),
       getWorkspaceFolder: uri => uri.fsPath.startsWith(directory) ? folder : undefined,
-      findFiles: async () => [uriFor(filename)],
+      findFiles: async (...args) => { findRequests.push(args); return foundFiles; },
       onDidChangeWorkspaceFolders: () => disposable(),
+      onDidChangeConfiguration: callback => { watchers.configuration = callback; return disposable(); },
+      onDidGrantWorkspaceTrust: callback => { watchers.trust = callback; return disposable(); },
       createFileSystemWatcher: () => ({ ...disposable(), onDidCreate: callback => { watchers.create = callback; return disposable(); },
         onDidDelete: callback => { watchers.delete = callback; return disposable(); }, onDidChange: callback => { watchers.change = callback; return disposable(); } }),
     },
@@ -81,7 +86,7 @@ async function harness() {
     finish() { if (this.pending) this.receive(JSON.parse(this.pending)); }
   }
   const runner = async (_executable, args, options) => {
-    calls++;
+    calls++; processArgs.push(args); processOptions.push(options);
     if (args.includes('--list')) return failure ? { code: 1, stdout: '', stderr: 'source does not type check', cancelled: false }
       : { code: 0, stdout: JSON.stringify({ version: 1, tests: records }), stderr: '', cancelled: false };
     if (executeBehavior) return executeBehavior(options, records, args);
@@ -107,7 +112,7 @@ async function harness() {
     saveSources: async folder => { savedFolders.push(folder.uri.toString()); return allowSave; } };
   api.registerTesting(context, runtime, { appendLine: value => messages.push(value) });
   return { directory, filename, text, records, folder, context, settings, profiles, profileObjects, callbacks, events, messages, watchers, covered, savedFolders,
-    controller, getCalls: () => calls, setFailure: value => failure = value,
+    controller, findRequests, processArgs, processOptions, exclusions, setFoundFiles: value => foundFiles = value, getCalls: () => calls, setFailure: value => failure = value,
     setCapabilities: value => capabilities = value, setExecute: callback => executeBehavior = callback,
     setSaveResult: value => allowSave = value,
     async dispose() { for (const item of context.subscriptions) item.dispose(); await fs.rm(directory, { recursive: true, force: true }); } };
@@ -272,5 +277,79 @@ test('watch reruns previously selected tests after source changes', async () => 
     assert.equal(h.events.filter(([event]) => event === 'end').length, before + 1);
     await pause(500);
     assert.equal(h.events.filter(([event]) => event === 'end').length, before + 1, 'watch must not loop');
+  } finally { await h.dispose(); }
+});
+
+test('test discovery excludes nested worktrees and preserves configured editor exclusions', async () => {
+  const h = await harness();
+  try {
+    h.exclusions.files.exclude = { '**/vendor/**': true, '**/included/**': false, '**/{archive,{old,backup}}/**': true };
+    h.exclusions.search.exclude = { '**/archived/**': true };
+    h.setFoundFiles([uriFor(h.filename), uriFor(path.join(h.directory, '.claude/worktrees/old/tests.nra')),
+      uriFor(path.join(h.directory, '.codex/worktrees/old/tests.nra')), uriFor(path.join(h.directory, 'build-release/tests.nra'))]);
+    await h.controller.refreshHandler();
+    assert.equal(h.getCalls(), 1, 'nested checkouts must never invoke discovery');
+    assert.match(h.findRequests[0][1], /\.claude/);
+    assert.match(h.findRequests[0][1], /\*\*\/vendor\/\*\*/);
+    assert.match(h.findRequests[0][1], /\*\*\/archived\/\*\*/);
+    assert.match(h.findRequests[0][1], /\*\*\/backup\/\*\*/);
+    assert.equal((h.findRequests[0][1].match(/\{/g) ?? []).length, 1, 'the ripgrep exclusion union must not contain nested alternatives');
+    assert.doesNotMatch(h.findRequests[0][1], /included/);
+    assert.equal(h.findRequests[0][2], undefined, 'test inputs are not silently truncated');
+    const calls = h.getCalls();
+    h.watchers.change(uriFor(path.join(h.directory, '.claude/worktrees/old/tests.nra')));
+    await pause(500);
+    assert.equal(h.getCalls(), calls, 'nested worktree watchers must not trigger rescans');
+  } finally { await h.dispose(); }
+});
+
+test('test discovery and execution share resolved project and target import roots', async () => {
+  const h = await harness();
+  try {
+    h.settings.sourceRoots = ['${workspaceFolder}/shared'];
+    h.settings.targets = [{ name: 'unit-tests', inputs: ['tests.nra'], sourceRoots: ['support'] }];
+    await h.controller.refreshHandler();
+    await h.profiles.get('Run')({}, new Source().token);
+    const expected = ['-I', path.join(h.directory, 'shared'), '-I', path.join(h.directory, 'support')];
+    for (const args of h.processArgs) {
+      assert.deepEqual(args.slice(args.indexOf('-I'), args.indexOf('-I') + expected.length), expected);
+    }
+  } finally { await h.dispose(); }
+});
+
+test('configuration changes refresh the test tree without reopening the workspace', async () => {
+  const h = await harness();
+  try {
+    h.watchers.configuration({ affectsConfiguration: section => section === 'neura' });
+    for (let attempt = 0; attempt < 50 && !h.getCalls(); attempt++) await pause(20);
+    assert.equal(h.getCalls(), 1);
+  } finally { await h.dispose(); }
+});
+
+
+test('support files and test names in comments or strings are not standalone test inputs', async () => {
+  const h = await harness();
+  try {
+    for (const contents of [
+      '/// export let test_example = func() {};\nlet Helper = module ();',
+      'let description = "test_example = func()";\nlet test_helper = import:Helper;',
+      'let Helpers = module (export let assert_test_result = func() {};);',
+    ]) {
+      await fs.writeFile(h.filename, contents);
+      await h.controller.refreshHandler();
+    }
+    assert.equal(h.getCalls(), 0);
+  } finally { await h.dispose(); }
+});
+
+
+test('test discovery and execution receive configured tool environment', async () => {
+  const h = await harness();
+  try {
+    h.settings.environment = { NEURA_TEST_SETTING: 'literal value' };
+    await h.controller.refreshHandler();
+    await h.profiles.get('Run')({}, new Source().token);
+    assert.equal(h.processOptions.length, 2);
+    for (const options of h.processOptions) assert.deepEqual(options.env, h.settings.environment);
   } finally { await h.dispose(); }
 });

@@ -1,8 +1,8 @@
 # Verification
 
-`npm test` covers real TextMate/Oniguruma tokenization, semantic-color contrast, documentation rendering and URL safety, configuration, Unicode coordinate conversion, process arguments, cancellation/timeouts, and protocol framing.
+`npm test` covers real TextMate/Oniguruma tokenization, semantic-color contrast, documentation rendering and URL safety, configuration, Unicode coordinate conversion, process arguments, cancellation/timeouts, protocol framing, declaration terminator editing, discovery exclusions, configured import roots, task actions, and tool environment propagation.
 
-`npm run test:integration` starts a real VS Code Extension Development Host and checks activation, registered workflows, language documents, and contributed settings. On headless Linux run it under `xvfb-run -a`. CI runs on Linux, macOS, and Windows; actual Windows execution uses WSL, not a native Neura binary.
+`npm run test:integration` starts a real VS Code Extension Development Host and checks activation, registered workflows, language documents, and contributed settings, normal delimiter typing with undo/redo, and exclusion of anonymous type/statement terminators. With `NEURA_TEST_EXECUTABLE`, it also checks compiler completions, rendered Doxygen hover, valid outlines during edits, formatting, and a resolved `tasks.json` check action. On headless Linux run it under `xvfb-run -a`. CI runs on Linux, macOS, and Windows; actual Windows execution uses WSL, not a native Neura binary.
 
 The companion Neura repository contains real LSP, DAP, formatter, test reporter, and coverage integration tests. Run them against a newly built compiler, not mocks. Existing language, compiler, VM, deterministic execution, and documentation suites must continue to pass.
 

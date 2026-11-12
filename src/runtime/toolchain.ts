@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import * as os from 'node:os';
 import * as fs from 'node:fs/promises';
 import { constants } from 'node:fs';
-import { configuration, resolvePath } from './configuration';
+import { configuration, resolvePath, toolEnvironment } from './configuration';
 import { runProcess } from './process';
 
 export interface Toolchain {
@@ -53,14 +53,14 @@ export class Toolchains implements vscode.Disposable {
             try {
                 const executable = await resolveExecutable(candidate, folder?.uri.fsPath);
                 if (!executable) { continue; }
-                const result = await runProcess(executable, ['--version'], { cwd: folder?.uri.fsPath, timeout: 10000 });
+                const result = await runProcess(executable, ['--version'], { cwd: folder?.uri.fsPath, env: toolEnvironment(folder), timeout: 10000 });
                 if (result.code !== 0) { continue; }
                 const description = result.stdout.trim();
                 const match = /^neura\s+([^\s]+)/.exec(description);
                 if (!match) { continue; }
                 let capabilities: Record<string, unknown> = {};
                 try {
-                    const probe = await runProcess(executable, ['capabilities', '--json'], { cwd: folder?.uri.fsPath, timeout: 10000 });
+                    const probe = await runProcess(executable, ['capabilities', '--json'], { cwd: folder?.uri.fsPath, env: toolEnvironment(folder), timeout: 10000 });
                     if (probe.code === 0) { capabilities = JSON.parse(probe.stdout) as Record<string, unknown>; }
                 } catch { /* Older Neura releases have no capability endpoint. */ }
                 this.output.appendLine(`Using ${description}: ${executable}`);
@@ -115,7 +115,7 @@ export class Toolchains implements vscode.Disposable {
         const tool = await this.require(folder); if (!tool) { return; }
         const task = new vscode.Task({ type: 'neura', action: command }, folder ?? vscode.TaskScope.Global,
             command === 'doctor' ? 'Doctor' : check ? 'Check for updates' : 'Update toolchain', 'Neura',
-            new vscode.ProcessExecution(tool.executable, [command, ...(check ? ['--check'] : [])], { cwd: folder?.uri.fsPath }), []);
+            new vscode.ProcessExecution(tool.executable, [command, ...(check ? ['--check'] : [])], { cwd: folder?.uri.fsPath, env: toolEnvironment(folder) }), []);
         task.presentationOptions = { reveal: vscode.TaskRevealKind.Always, panel: vscode.TaskPanelKind.Dedicated };
         await vscode.tasks.executeTask(task);
         this.invalidate();

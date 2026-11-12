@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import type { Runtime } from './runtime';
 import { runProcess } from './process';
+import { toolEnvironment } from './runtime/configuration';
 import { escapeHtml } from './documentation';
 
 export interface SourcePoint { path: string; line: number; column: number; }
@@ -219,7 +220,7 @@ export function registerInsights(context: vscode.ExtensionContext, runtime: Runt
         await vscode.window.showTextDocument(document, { selection: new vscode.Range(line, character, line, character), preview: true });
     };
     const inspect = async (executable: string, artifact: vscode.Uri, folder: vscode.WorkspaceFolder, graph?: number, token?: vscode.CancellationToken): Promise<CircuitImage> => {
-        const result = await runProcess(executable, ['inspect-image', '--json', artifact.fsPath, ...(graph === undefined ? [] : ['--graph', String(graph), '--limit', '350'])], { cwd: folder.uri.fsPath, token, timeoutMs: 30000, maxOutputBytes: 32 * 1024 * 1024 });
+        const result = await runProcess(executable, ['inspect-image', '--json', artifact.fsPath, ...(graph === undefined ? [] : ['--graph', String(graph), '--limit', '350'])], { cwd: folder.uri.fsPath, env: toolEnvironment(folder), token, timeoutMs: 30000, maxOutputBytes: 32 * 1024 * 1024 });
         if (result.cancelled) { throw new vscode.CancellationError(); } if (result.code !== 0) { throw new Error(result.stderr || 'Image inspection requires a compatible Neura tooling release.'); } return parseCircuitImage(result.stdout);
     };
     register('neura.circuitExplorer', async value => {
