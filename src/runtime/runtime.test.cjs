@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
+const os = require('node:os');
 const Module = require('node:module');
 const ts = require('typescript');
 
@@ -26,16 +27,18 @@ const { shellQuote, resolveExecutable } = require('./toolchain.ts');
 Module._load = originalLoad;
 if (originalTs) { require.extensions['.ts'] = originalTs; } else { delete require.extensions['.ts']; }
 
-const folder = { name: 'project', index: 0, uri: { fsPath: '/tmp/neura project' } };
+const folder = { name: 'project', index: 0, uri: { fsPath: path.resolve(os.tmpdir(), 'neura project') } };
 
 test('target resolution preserves structured shell-sensitive arguments', () => {
     const target = config.resolveTarget({ name: 'hello', inputs: ['src/main.nra'], sourceRoots: ['src'],
         args: ['two words', '$(no-execution)', "it's literal", '; exit 99'], env: { EXAMPLE: 'value' } }, folder);
-    assert.equal(target.inputs[0], '/tmp/neura project/src/main.nra');
-    assert.deepEqual(config.runArguments(target), ['run', '/tmp/neura project/.neura-vscode/hello.nvr', '--',
+    const source = path.join(folder.uri.fsPath, 'src', 'main.nra');
+    const artifact = path.join(folder.uri.fsPath, '.neura-vscode', 'hello.nvr');
+    assert.equal(target.inputs[0], source);
+    assert.deepEqual(config.runArguments(target), ['run', artifact, '--',
         'two words', '$(no-execution)', "it's literal", '; exit 99']);
-    assert.deepEqual(config.buildArguments(target), ['build', '-I', '/tmp/neura project/src',
-        '/tmp/neura project/src/main.nra', '-o', '/tmp/neura project/.neura-vscode/hello.nvr']);
+    assert.deepEqual(config.buildArguments(target), ['build', '-I', path.join(folder.uri.fsPath, 'src'),
+        source, '-o', artifact]);
     assert.equal(target.env.EXAMPLE, 'value');
 });
 
@@ -45,7 +48,7 @@ test('library and native targets map to the real compiler commands', () => {
     assert.ok(library.output.endsWith('.nir'));
     const native = config.resolveTarget({ name: 'app', kind: 'native', inputs: ['main.nra'] }, folder);
     assert.deepEqual(config.buildArguments(native).slice(0, 2), ['build', '--native']);
-    assert.ok(native.output.endsWith('/app'));
+    assert.equal(path.basename(native.output), 'app');
 });
 
 test('invalid targets and source-overwriting output are rejected', () => {
