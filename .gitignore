@@ -6,3 +6,5 @@ out/
 coverage/
 .neura/
 *.nvr
+examples/neura-host-test-*/
+examples/neura-030-*/
