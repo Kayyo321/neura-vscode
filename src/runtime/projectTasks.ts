@@ -109,7 +109,23 @@ export async function runProjectAction(executable: string, action: ProjectAction
     const definition: ProjectTaskDefinition = { type: 'neura-project', action, target: reference.target.name,
         ...(relative === 'neura.toml' ? {} : { project: relative }), ...(format ? { format } : {}),
         ...(updateLock ? { updateLock } : {}) };
+    if (action === 'package') {
+        // `neura package` wraps a built bundle: build it first, and package only when the build succeeds.
+        const build: ProjectTaskDefinition = { type: 'neura-project', action: 'build', target: reference.target.name,
+            ...(relative === 'neura.toml' ? {} : { project: relative }) };
+        if (await executeAndWait(projectTask(executable, reference.folder, build, reference.manifest)) !== 0) { return; }
+    }
     await vscode.tasks.executeTask(projectTask(executable, reference.folder, definition, reference.manifest));
+}
+
+function executeAndWait(task: vscode.Task): Promise<number | undefined> {
+    return new Promise((resolve, reject) => {
+        let execution: vscode.TaskExecution | undefined;
+        const ended = vscode.tasks.onDidEndTaskProcess(event => {
+            if (event.execution === execution || event.execution.task === task) { ended.dispose(); resolve(event.exitCode); }
+        });
+        vscode.tasks.executeTask(task).then(value => { execution = value; }, error => { ended.dispose(); reject(error); });
+    });
 }
 
 /** The project target that owns a source file: the nearest neura.toml above it inside the workspace
@@ -131,6 +147,16 @@ export async function projectTargetForFile(folder: vscode.WorkspaceFolder, file:
             if (owners.length === 1) { return { folder, manifest, target: owners[0]! }; }
             return 'ambiguous';
         }
+        if (directory === root || path.dirname(directory) === directory) { break; }
+    }
+    return undefined;
+}
+
+/** The directory of the nearest neura.toml above a file, inside the workspace folder. */
+export async function projectDirectoryForFile(folder: vscode.WorkspaceFolder, file: string): Promise<string | undefined> {
+    const root = path.resolve(folder.uri.fsPath);
+    for (let directory = path.dirname(path.resolve(file)); directory.startsWith(root); directory = path.dirname(directory)) {
+        try { await fs.access(path.join(directory, 'neura.toml')); return directory; } catch { /* Keep looking upwards. */ }
         if (directory === root || path.dirname(directory) === directory) { break; }
     }
     return undefined;

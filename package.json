@@ -1148,8 +1148,12 @@
         "owner": "neura",
         "source": "Neura",
         "fileLocation": [
-          "autoDetect",
-          "${workspaceFolder}"
+          "search",
+          {
+            "include": [
+              "${workspaceFolder}"
+            ]
+          }
         ],
         "pattern": {
           "regexp": "^(.*?):(\\d+):(\\d+): (error|warning)(?:\\[([^\\]]+)\\])?: (.*)$",

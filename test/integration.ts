@@ -215,7 +215,7 @@ async function project030(executable: string, root: string, pause: (milliseconds
   const directory = path.join(parent, 'probe');
   try {
     const { execFileSync } = await import('node:child_process');
-    execFileSync(executable, ['new', directory, '--template', 'web'], { env: { ...process.env, NEURA_NO_UPDATE_CHECK: '1' } });
+    execFileSync(executable, ['new', directory, '--template', 'fullstack'], { env: { ...process.env, NEURA_NO_UPDATE_CHECK: '1' } });
     const manifest = path.join(directory, 'neura.toml');
     let tasks: vscode.Task[] = [];
     let build: vscode.Task | undefined;
@@ -227,6 +227,7 @@ async function project030(executable: string, root: string, pause: (milliseconds
     assert.ok(build, `project build task: ${tasks.map(task => task.name).join(', ')}`);
     assert.ok(tasks.some(task => task.definition.action === 'dev' && task.definition.target === 'web'), 'project dev task');
     assert.ok(!tasks.some(task => task.definition.action === 'package' && task.definition.target === 'web'), 'web targets are not packaged');
+    assert.ok(tasks.some(task => task.definition.action === 'package' && task.definition.target === 'server'), 'server targets are packaged');
     const execution = build.execution as vscode.ProcessExecution;
     assert.deepEqual(execution.args, ['build', '--project', manifest, '--target', 'web']);
     let ended: vscode.Disposable | undefined;
@@ -255,6 +256,68 @@ async function project030(executable: string, root: string, pause: (milliseconds
       assert.equal(result.code, 0);
     } finally { fileEnded?.dispose(); }
     await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+    const runTask = async (definition: vscode.TaskDefinition, settle?: (execution: vscode.TaskExecution) => Promise<void>): Promise<number | undefined> => {
+      const task = tasks.find(item => item.definition.action === definition.action && item.definition.target === definition.target && String(item.definition.project ?? '').endsWith('probe/neura.toml'));
+      assert.ok(task, `task ${JSON.stringify(definition)}`);
+      let listener: vscode.Disposable | undefined;
+      const finished = new Promise<number | undefined>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error(`${definition.action} ${definition.target} did not finish`)), 120000);
+        listener = vscode.tasks.onDidEndTaskProcess(event => {
+          if (event.execution.task.definition.action === definition.action && event.execution.task.definition.target === definition.target) { clearTimeout(timer); resolve(event.exitCode); }
+        });
+      });
+      const execution = await vscode.tasks.executeTask(task);
+      try { if (settle) await settle(execution); return await finished; } finally { listener?.dispose(); }
+    };
+    // A package diagnostic located relative to the manifest of a project below the workspace folder.
+    const main = path.join(directory, 'ui', 'main.nra');
+    const original = await fs.readFile(main, 'utf8');
+    await fs.writeFile(main, original.replace('let web = import:Std.Web;', 'let web = import:Std.Web;\nlet server = import:Server.Main;'));
+    assert.notEqual(await runTask({ action: 'build', target: 'web' }), 0, 'E1030 fails the build');
+    let located: vscode.Diagnostic[] = [];
+    for (let attempt = 0; attempt < 40 && !located.length; attempt++) {
+      located = vscode.languages.getDiagnostics(vscode.Uri.file(main)).filter(item => String(typeof item.code === 'object' ? item.code.value : item.code) === 'E1030');
+      if (!located.length) await pause(100);
+    }
+    assert.equal(located.length, 1, `E1030 lands on ui/main.nra: ${JSON.stringify(vscode.languages.getDiagnostics().filter(([, list]) => list.length).map(([uri, list]) => [uri.fsPath, list.map(item => item.message)]))}`);
+    assert.equal(located[0]!.range.start.line, 9);
+    await fs.writeFile(main, original);
+    // Package builds the server bundle first, then wraps it.
+    await vscode.commands.executeCommand('neura.projectPackage', { projectTarget: { folder: vscode.workspace.workspaceFolders![0], manifest, target: { name: 'server', kind: 'server', package: 'server' } } });
+    let archive: string | undefined;
+    for (let attempt = 0; attempt < 600 && !archive; attempt++) {
+      archive = (await fs.readdir(path.join(directory, 'dist')).catch(() => [] as string[])).find(name => name.endsWith('-server.tar.gz'));
+      if (!archive) await pause(100);
+    }
+    assert.ok(archive, 'neura package wrote a server archive');
+    // neura dev keeps running on its live terminal until it is stopped, and leaves no process behind.
+    const { execFileSync: run } = await import('node:child_process');
+    const children = (): string => { try { return run('pgrep', ['-f', `dev --project ${manifest}`], { encoding: 'utf8' }); } catch { return ''; } };
+    const devCode = await runTask({ action: 'dev', target: 'web' }, async execution => {
+      for (let attempt = 0; attempt < 100 && !children(); attempt++) await pause(100);
+      assert.ok(children(), 'neura dev is running');
+      await pause(3000);
+      assert.ok(children(), 'neura dev stays up on its terminal');
+      execution.terminate();
+    });
+    for (let attempt = 0; attempt < 50 && children(); attempt++) await pause(100);
+    assert.equal(children(), '', `no neura dev process remains (exit ${devCode})`);
+    // Debug on a project source file resolves the imports of the project's other packages.
+    const stops: string[] = [];
+    const tracker = vscode.debug.registerDebugAdapterTrackerFactory('neura', { createDebugAdapterTracker: () => ({
+      onDidSendMessage: (message: { type?: string; event?: string; body?: { reason?: string } }) => {
+        if (message.type === 'event' && message.event === 'stopped') stops.push(message.body?.reason ?? '');
+      },
+    }) });
+    try {
+      await vscode.commands.executeCommand('neura.debug', vscode.Uri.file(path.join(directory, 'server', 'main.nra')));
+      for (let attempt = 0; attempt < 200 && !stops.length; attempt++) await pause(100);
+      assert.equal(stops[0], 'entry', 'a project server source launches under the debugger and stops on entry');
+    } finally {
+      tracker.dispose();
+      if (vscode.debug.activeDebugSession) await Promise.resolve(vscode.debug.stopDebugging()).catch(() => undefined);
+      await pause(500);
+    }
   } finally { await fs.rm(parent, { recursive: true, force: true }); }
 }
 
@@ -291,7 +354,8 @@ async function debugger030(root: string, pause: (milliseconds: number) => Promis
     },
   }) });
   const breakpoint = new vscode.SourceBreakpoint(new vscode.Location(vscode.Uri.file(file), new vscode.Position(10, 8)));
-  vscode.debug.addBreakpoints([breakpoint]);
+  const stepPoint = new vscode.SourceBreakpoint(new vscode.Location(vscode.Uri.file(file), new vscode.Position(6, 8)));
+  vscode.debug.addBreakpoints([stepPoint, breakpoint]);
   try {
     const folder = vscode.workspace.workspaceFolders![0]!;
     assert.ok(await vscode.debug.startDebugging(folder, { type: 'neura', request: 'launch', name: 'Debug 0.3.0', program: file, cwd: directory, stopOnEntry: false }), 'debug session starts');
@@ -299,16 +363,23 @@ async function debugger030(root: string, pause: (milliseconds: number) => Promis
     assert.equal(stopped?.reason, 'breakpoint', `stopped at the breakpoint (events: ${events.join(', ')})`);
     const session = vscode.debug.activeDebugSession; assert.ok(session);
     const threads = await session.customRequest('threads') as { threads: { id: number }[] };
+    const line = async (): Promise<number | undefined> => ((await session.customRequest('stackTrace', { threadId: threads.threads[0]!.id })) as { stackFrames: { line: number }[] }).stackFrames[0]?.line;
+    assert.equal(await line(), 7, 'the first stop is the breakpoint on let total = 0;');
+    const beforeStep = stops.length;
+    await session.customRequest('next', { threadId: threads.threads[0]!.id });
+    for (let attempt = 0; attempt < 100 && stops.length === beforeStep; attempt++) await pause(100);
+    assert.equal(stops[beforeStep]?.reason, 'step', `next stops with reason step: ${JSON.stringify(stops)}`);
+    assert.ok((await line() ?? 0) > 7, 'the step moved past the breakpoint line');
+    const beforeContinue = stops.length;
+    await session.customRequest('continue', { threadId: threads.threads[0]!.id });
+    for (let attempt = 0; attempt < 100 && stops.length === beforeContinue; attempt++) await pause(100);
+    assert.equal(stops[beforeContinue]?.reason, 'breakpoint', 'continue reaches the second breakpoint');
     const trace = await session.customRequest('stackTrace', { threadId: threads.threads[0]!.id }) as { stackFrames: { line: number; source?: { path?: string } }[] };
     assert.equal(trace.stackFrames[0]?.line, 11, 'the top frame is the breakpoint line');
     const scopes = await session.customRequest('scopes', { frameId: (trace.stackFrames[0] as unknown as { id: number }).id }) as { scopes: { variablesReference: number }[] };
     const variables = await session.customRequest('variables', { variablesReference: scopes.scopes[0]!.variablesReference }) as { variables: { name: string; value: string }[] };
     assert.ok(variables.variables.some(variable => variable.name === 'total' && variable.value === '6'), `frame locals: ${JSON.stringify(variables.variables)}`);
     const ended = new Promise<void>(resolve => { const listener = vscode.debug.onDidTerminateDebugSession(() => { listener.dispose(); resolve(); }); });
-    const before = stops.length;
-    await session.customRequest('next', { threadId: threads.threads[0]!.id });
-    for (let attempt = 0; attempt < 100 && stops.length === before; attempt++) await pause(100);
-    assert.ok(['step', 'breakpoint'].includes(stops[before]?.reason ?? ''), `a step stops again: ${JSON.stringify(stops)}`);
     let finished = false; void ended.then(() => { finished = true; });
     for (let resumes = 0; resumes < 5 && !finished && !events.includes('terminated'); resumes++) {
       const count = stops.length;
@@ -319,7 +390,7 @@ async function debugger030(root: string, pause: (milliseconds: number) => Promis
     assert.ok(finished || events.includes('terminated') || events.includes('exited'),
       `the program ran to completion (events: ${events.join(', ')}; stops: ${JSON.stringify(stops)})`);
   } finally {
-    vscode.debug.removeBreakpoints([breakpoint]); tracker.dispose();
+    vscode.debug.removeBreakpoints([stepPoint, breakpoint]); tracker.dispose();
     console.log(`Neura debug events: ${events.join(', ')}; stops: ${JSON.stringify(stops)}`);
     // A session that is already ending refuses a second stop with Canceled.
     if (vscode.debug.activeDebugSession) await Promise.resolve(vscode.debug.stopDebugging()).catch(() => undefined);

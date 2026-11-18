@@ -17,6 +17,7 @@ export type { Toolchain } from './toolchain';
 export type { BuildResult } from './tasks';
 export { runProcess, terminateProcess } from './process';
 export { supportsCapability } from './language';
+export { projectDirectoryForFile } from './projectTasks';
 
 export class Runtime implements vscode.Disposable {
     readonly toolchains: Toolchains;

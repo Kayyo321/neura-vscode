@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'node:path';
 import type { Runtime } from './runtime';
-import { supportsCapability } from './runtime';
-import { toolEnvironment } from './runtime/configuration';
+import { projectDirectoryForFile, supportsCapability } from './runtime';
+import { configuredTargets, resolveTarget, toolEnvironment } from './runtime/configuration';
 
 export function registerDebugging(context: vscode.ExtensionContext, runtime: Runtime, output: vscode.OutputChannel): void {
   context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('neura', {
@@ -43,7 +43,15 @@ export function registerDebugging(context: vscode.ExtensionContext, runtime: Run
   }));
   context.subscriptions.push(vscode.commands.registerCommand('neura.debug', async (uri?: vscode.Uri | string) => {
     const document = uri ? await vscode.workspace.openTextDocument(typeof uri === 'string' ? vscode.Uri.parse(uri) : uri) : vscode.window.activeTextEditor?.document;
-    const target = await runtime.getTarget(document);
+    // A source file of a neura.toml project that no editor target lists is launched by itself, with the project
+    // directory as a source root: its imports name modules of the project's other packages by that path.
+    const folder = document?.uri.scheme === 'file' ? vscode.workspace.getWorkspaceFolder(document.uri) : undefined;
+    const file = document?.uri.fsPath;
+    const project = folder && file && !configuredTargets(folder).some(item => item.inputs.includes(file))
+      ? await projectDirectoryForFile(folder, file) : undefined;
+    const target = project && folder && file
+      ? resolveTarget({ name: path.basename(file, path.extname(file)), inputs: [file], sourceRoots: [project] }, folder, file)
+      : await runtime.getTarget(document);
     if (!target) return;
     if (target.kind === 'library') { void vscode.window.showInformationMessage('Select an application target or a test to debug.'); return; }
     await vscode.debug.startDebugging(target.folder, { type: 'neura', request: 'launch', name: `Debug ${target.name}`, program: target.inputs[0], files: target.inputs, sourceRoots: target.sourceRoots, cwd: target.cwd, args: target.args, env: target.env, stopOnEntry: true });
