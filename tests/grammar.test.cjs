@@ -136,6 +136,22 @@ test('grouped, defaulted, variadic, tagged and untyped lambda parameters; => set
   assert.ok(hasScope(shorthand, 'set', 'keyword.other.constructor-shorthand.neura'));
   assert.ok(hasScope(shorthand, 'x', 'variable.parameter.neura'));
 });
+test('named arguments and field labels are labels, not conditional operators', async () => {
+  const [call] = await tokenize('schedule("backup", urgent: true, retries: 3);');
+  assert.ok(hasScope(call, 'urgent', 'variable.parameter.label.neura'));
+  assert.ok(hasScope(call, 'retries', 'variable.parameter.label.neura'));
+  assert.ok(!call.some(t => t.scopes.includes('keyword.operator.conditional.neura')));
+  const [generic] = await tokenize('let x = make<int>(count: 3);');
+  assert.ok(hasScope(generic, 'count', 'variable.parameter.label.neura'), 'a generic call is not a parameter list');
+  assert.ok(!generic.some(t => t.scopes.includes('meta.function.parameters.neura')));
+  const [copy] = await tokenize('let m = new with(user) { name: "Grace", id: 3 };');
+  assert.ok(hasScope(copy, 'name', 'variable.parameter.label.neura'));
+  assert.ok(hasScope(copy, 'id', 'variable.parameter.label.neura'));
+  const [ternary] = await tokenize('let c = f(ok ? a : b);');
+  assert.ok(hasScope(ternary, ':', 'keyword.operator.conditional.neura'));
+  const [arm] = await tokenize('let n = match.is (value) { text: string => 0, _ => 1 };');
+  assert.ok(!hasScope(arm, 'text', 'variable.parameter.label.neura'), 'a match.is binding is not a label');
+});
 test('records, copies, properties, virtual accessors, let.override and static requirements', async () => {
   const lines = await tokenize([
     'let User = record (id: int64, name: string);',

@@ -47,7 +47,7 @@ A project is a `neura.toml` with packages and targets, and a `neura.lock` that t
 | --- | --- | --- |
 | Build | **Neura: Build Project Target** | `neura build --project <manifest> --target <name>` into `dist/<name>` |
 | Develop | **Neura: Develop Project Target (neura dev)** | `neura dev`: builds into `dist/dev/<name>`, serves a web target on `127.0.0.1:4310` or runs a server or desktop target, and rebuilds on change. Stop it with the terminal's trash icon or Ctrl+C. |
-| Package | **Neura: Package Project Target** | `neura package` for a server or desktop target; a desktop target asks for `tar.gz`, `deb` or `zip`. |
+| Package | **Neura: Package Project Target** | `neura build --target`, then `neura package` for a server or desktop target; a desktop target asks for `tar.gz`, `deb` or `zip`. |
 | Update lock | **Neura: Build Project Target and Update neura.lock** | `neura build --update-lock` after you change a dependency or component pin. |
 
 **Build** and **Run** above the editor act on the project too: on a source file inside a project, Build builds the target whose package holds the file and Run starts `neura dev` for it, unless a `neura.targets` entry lists the file.
@@ -64,7 +64,7 @@ The same actions are tasks of type `neura-project` (**Terminal → Run Task**), 
 }
 ```
 
-Project diagnostics appear in **Problems**. With the [Even Better TOML](https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml) extension, `neura.toml` is validated and completed from the extension's schema: unknown keys, a capability a target kind cannot have, and malformed names and versions are marked as you type.
+Project diagnostics appear in **Problems**. The extension contributes a schema for `neura.toml` (`schemas/neura.toml.schema.json`, from the SDK's manifest reader) to the [Even Better TOML](https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml) extension, which can then mark unknown keys, a capability that a target kind cannot have, and malformed names and versions as you type. If Even Better TOML does not pick it up, put `#:schema <path to the schema>` at the top of the manifest.
 
 The language server checks a file in a project with the workspace folder as its import root. It does not yet apply a project's package boundaries: an import across packages that the `depends` lists forbid (`E1030`) is reported by `neura check` and `neura build --target`, not while you type.
 
@@ -76,7 +76,7 @@ Hover, completion, signature help, rename and formatting come from the SDK's lan
 
 ## 5. Run, test and debug
 
-Use **Run**, **Build** and **Debug** above the editor for single-file programs and `neura.targets`. The Testing view discovers exported `test_` functions. Set a breakpoint and start **Neura: Debug**: `neura debug --stdio` runs unoptimized NVM code, stops at breakpoints, steps, and shows locals, including the state of a suspended generator by its source names. Source locations have block granularity, so a breakpoint on a line that spans several blocks (an interpolated string, for example) can stop more than once.
+Use **Run**, **Build** and **Debug** above the editor for single-file programs and `neura.targets`. The Testing view discovers exported `test_` functions. Set a breakpoint and start **Neura: Debug**; on a source file of a project, the file is launched with the project directory as a source root. `neura debug --stdio` runs unoptimized NVM code, stops at breakpoints, steps, and shows locals, including the state of a suspended generator by its source names. Source locations have block granularity, so a breakpoint on a line that spans several blocks (an interpolated string, for example) can stop more than once.
 
 ## Troubleshooting
 

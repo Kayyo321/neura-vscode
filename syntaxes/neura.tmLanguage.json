@@ -49,6 +49,9 @@
       "include": "#numbers"
     },
     {
+      "include": "#argument-labels"
+    },
+    {
       "include": "#optional-members"
     },
     {
@@ -760,69 +763,140 @@
       ]
     },
     "parameters": {
-      "name": "meta.function.parameters.neura",
-      "begin": "(?:(?<=\\bfunc)|(?<=\\biterator)|(?<=\\bhtml)|(?<=\\brecord)|(?<=>))\\s*(\\()(?=\\s*(?:\\)|#|(?:[A-Za-z_][A-Za-z_0-9]*\\s*,\\s*)*[A-Za-z_][A-Za-z_0-9]*\\s*:(?!:)|(?:[A-Za-z_][A-Za-z_0-9]*\\s*,\\s*)*[A-Za-z_][A-Za-z_0-9]*\\s*\\)\\s*(?:=>|\\{)))",
-      "beginCaptures": {
-        "1": {
-          "name": "punctuation.section.parameters.begin.neura"
-        }
-      },
-      "end": "\\)",
-      "endCaptures": {
-        "0": {
-          "name": "punctuation.section.parameters.end.neura"
-        }
-      },
       "patterns": [
         {
-          "include": "#comments"
-        },
-        {
-          "include": "#tags"
-        },
-        {
-          "name": "meta.parameter.type.neura",
-          "begin": ":(?!:)",
+          "name": "meta.function.parameters.neura",
+          "begin": "(?:(?<=\\bfunc)|(?<=\\biterator)|(?<=\\bhtml)|(?<=\\brecord))\\s*(\\()(?=\\s*(?:\\)|#|(?:[A-Za-z_][A-Za-z_0-9]*\\s*,\\s*)*[A-Za-z_][A-Za-z_0-9]*\\s*:(?!:)|(?:[A-Za-z_][A-Za-z_0-9]*\\s*,\\s*)*[A-Za-z_][A-Za-z_0-9]*\\s*\\)\\s*(?:=>|\\{)))",
           "beginCaptures": {
-            "0": {
-              "name": "punctuation.separator.type.neura"
+            "1": {
+              "name": "punctuation.section.parameters.begin.neura"
             }
           },
-          "end": "(?=[,)=])",
-          "patterns": [
-            {
-              "include": "#type-expression"
-            }
-          ]
-        },
-        {
-          "name": "meta.parameter.default.neura",
-          "begin": "=(?![=>])",
-          "beginCaptures": {
+          "end": "\\)",
+          "endCaptures": {
             "0": {
-              "name": "keyword.operator.assignment.default.neura"
+              "name": "punctuation.section.parameters.end.neura"
             }
           },
-          "end": "(?=[,)])",
           "patterns": [
             {
-              "include": "#default-group"
+              "include": "#comments"
             },
             {
-              "include": "#hole-expression"
+              "include": "#tags"
+            },
+            {
+              "name": "meta.parameter.type.neura",
+              "begin": ":(?!:)",
+              "beginCaptures": {
+                "0": {
+                  "name": "punctuation.separator.type.neura"
+                }
+              },
+              "end": "(?=[,)=])",
+              "patterns": [
+                {
+                  "include": "#type-expression"
+                }
+              ]
+            },
+            {
+              "name": "meta.parameter.default.neura",
+              "begin": "=(?![=>])",
+              "beginCaptures": {
+                "0": {
+                  "name": "keyword.operator.assignment.default.neura"
+                }
+              },
+              "end": "(?=[,)])",
+              "patterns": [
+                {
+                  "include": "#default-group"
+                },
+                {
+                  "include": "#hole-expression"
+                }
+              ]
+            },
+            {
+              "name": "storage.modifier.neura",
+              "match": "\\blast\\b(?=\\s+[A-Za-z_][A-Za-z_0-9]*)"
+            },
+            {
+              "name": "variable.parameter.neura",
+              "match": "\\b[A-Za-z_][A-Za-z_0-9]*\\b"
+            },
+            {
+              "include": "#punctuation"
             }
           ]
         },
         {
-          "name": "storage.modifier.neura",
-          "match": "\\blast\\b(?=\\s+[A-Za-z_][A-Za-z_0-9]*)"
-        },
-        {
-          "name": "variable.parameter.neura",
-          "match": "\\b[A-Za-z_][A-Za-z_0-9]*\\b"
-        },
-        {
-          "include": "#punctuation"
+          "name": "meta.function.parameters.neura",
+          "begin": "(?<=>)\\s*(\\()(?=(?:[^()]|\\((?:[^()]|\\([^()]*\\))*\\))*\\)\\s*(?:->|=>|\\{))(?=\\s*(?:\\)|#|(?:[A-Za-z_][A-Za-z_0-9]*\\s*,\\s*)*[A-Za-z_][A-Za-z_0-9]*\\s*:(?!:)|(?:[A-Za-z_][A-Za-z_0-9]*\\s*,\\s*)*[A-Za-z_][A-Za-z_0-9]*\\s*\\)\\s*(?:=>|\\{)))",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.section.parameters.begin.neura"
+            }
+          },
+          "end": "\\)",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.parameters.end.neura"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#comments"
+            },
+            {
+              "include": "#tags"
+            },
+            {
+              "name": "meta.parameter.type.neura",
+              "begin": ":(?!:)",
+              "beginCaptures": {
+                "0": {
+                  "name": "punctuation.separator.type.neura"
+                }
+              },
+              "end": "(?=[,)=])",
+              "patterns": [
+                {
+                  "include": "#type-expression"
+                }
+              ]
+            },
+            {
+              "name": "meta.parameter.default.neura",
+              "begin": "=(?![=>])",
+              "beginCaptures": {
+                "0": {
+                  "name": "keyword.operator.assignment.default.neura"
+                }
+              },
+              "end": "(?=[,)])",
+              "patterns": [
+                {
+                  "include": "#default-group"
+                },
+                {
+                  "include": "#hole-expression"
+                }
+              ]
+            },
+            {
+              "name": "storage.modifier.neura",
+              "match": "\\blast\\b(?=\\s+[A-Za-z_][A-Za-z_0-9]*)"
+            },
+            {
+              "name": "variable.parameter.neura",
+              "match": "\\b[A-Za-z_][A-Za-z_0-9]*\\b"
+            },
+            {
+              "include": "#punctuation"
+            }
+          ]
         }
       ]
     },
@@ -986,6 +1060,9 @@
         },
         {
           "include": "#numbers"
+        },
+        {
+          "include": "#argument-labels"
         },
         {
           "include": "#optional-members"
@@ -1682,6 +1759,52 @@
         {
           "name": "punctuation.terminator.rule.css",
           "match": ";"
+        }
+      ]
+    },
+    "argument-labels": {
+      "patterns": [
+        {
+          "match": "(\\()\\s*([A-Za-z_][A-Za-z_0-9]*)\\s*(:)(?![:=])",
+          "captures": {
+            "1": {
+              "name": "punctuation.section.group.neura"
+            },
+            "2": {
+              "name": "variable.parameter.label.neura"
+            },
+            "3": {
+              "name": "punctuation.separator.label.neura"
+            }
+          }
+        },
+        {
+          "match": "(,)\\s*([A-Za-z_][A-Za-z_0-9]*)\\s*(:)(?![:=])",
+          "captures": {
+            "1": {
+              "name": "punctuation.separator.delimiter.neura"
+            },
+            "2": {
+              "name": "variable.parameter.label.neura"
+            },
+            "3": {
+              "name": "punctuation.separator.label.neura"
+            }
+          }
+        },
+        {
+          "match": "(\\{)\\s*([A-Za-z_][A-Za-z_0-9]*)\\s*(:)(?![:=])(?!\\s*[A-Za-z_][A-Za-z_0-9]*\\s*(?:if\\b|=>))",
+          "captures": {
+            "1": {
+              "name": "punctuation.section.block.neura"
+            },
+            "2": {
+              "name": "variable.parameter.label.neura"
+            },
+            "3": {
+              "name": "punctuation.separator.label.neura"
+            }
+          }
         }
       ]
     }

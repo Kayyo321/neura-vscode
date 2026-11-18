@@ -1191,7 +1191,7 @@
     ],
     "tomlValidation": [
       {
-        "fileMatch": "neura.toml",
+        "regexMatch": "^.*[/\\\\]neura\\.toml$",
         "url": "./schemas/neura.toml.schema.json"
       }
     ]

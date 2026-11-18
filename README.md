@@ -29,7 +29,7 @@ Syntax and themes remain usable without Neura installed. Execution and workspace
 
 ## Projects and targets
 
-Neura 0.3.0 projects are described by `neura.toml` and locked by `neura.lock`. **Neura: Create Project** runs `neura new` with the SDK's `fullstack`, `web`, `server` and `desktop` templates. The **Projects and Targets** view lists each manifest's targets with **Build** (`neura build --project <manifest> --target <name>`), **Develop** (`neura dev`) and, for server and desktop targets, **Package** (`neura package`) actions; they are also `neura-project` tasks for `tasks.json`. Diagnostics from project builds appear in Problems. With Even Better TOML installed, `neura.toml` is validated against the manifest schema. See [Get started](docs/GETTING-STARTED.md#3-create-a-project).
+Neura 0.3.0 projects are described by `neura.toml` and locked by `neura.lock`. **Neura: Create Project** runs `neura new` with the SDK's `fullstack`, `web`, `server` and `desktop` templates. The **Projects and Targets** view lists each manifest's targets with **Build** (`neura build --project <manifest> --target <name>`), **Develop** (`neura dev`) and, for server and desktop targets, **Package** (`neura package`) actions; they are also `neura-project` tasks for `tasks.json`. Diagnostics from project builds appear in Problems. A `neura.toml` schema is contributed to Even Better TOML. See [Get started](docs/GETTING-STARTED.md#3-create-a-project).
 
 For single-file programs, **Create Project** also offers a console, library, test, or multi-module starter, and editor targets are configured in `.vscode/settings.json`:
 
