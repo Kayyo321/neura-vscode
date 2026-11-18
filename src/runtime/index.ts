@@ -7,7 +7,7 @@ import { LanguageServices } from './language';
 import { BuildResult, NeuraTaskProvider, TaskRunner } from './tasks';
 import { CliDiagnostics } from './diagnostics';
 import { createProject, Projects } from './projects';
-import { pickProjectTarget, ProjectTaskProvider, runProjectAction } from './projectTasks';
+import { pickProjectTarget, projectTargetForFile, ProjectTaskProvider, runProjectAction } from './projectTasks';
 import { ProjectAction } from './manifest';
 import { isRuntimeOnly } from './toolchain';
 import { runProcess } from './process';
@@ -51,8 +51,14 @@ export class Runtime implements vscode.Disposable {
         command('neura.update', () => this.toolchains.command('update', activeFolder()));
         command('neura.reopenInWsl', () => this.toolchains.reopenInWsl());
         command('neura.selectTarget', async argument => { await this.getTarget(await this.document(argument), true); });
-        command('neura.build', async argument => { await this.build(await this.document(argument)); });
-        command('neura.run', async argument => this.run(await this.document(argument)));
+        command('neura.build', async argument => {
+            const document = await this.document(argument);
+            if (!(await this.projectAction(document, 'build'))) { await this.build(document); }
+        });
+        command('neura.run', async argument => {
+            const document = await this.document(argument);
+            if (!(await this.projectAction(document, 'dev'))) { await this.run(document); }
+        });
         command('neura.check', async argument => this.check(await this.document(argument)));
         command('neura.clean', async argument => this.clean(await this.document(argument)));
         command('neura.rebuild', async argument => { const document = await this.document(argument); await this.clean(document); await this.build(document); });
@@ -107,6 +113,21 @@ export class Runtime implements vscode.Disposable {
         this.language.dispose(); this.tasks.dispose(); this.diagnostics.dispose(); this.toolchains.dispose(); this.projects?.dispose();
         for (const disposable of this.disposables) { disposable.dispose(); } this.disposables.length = 0;
         for (const timer of this.saveTimers.values()) { clearTimeout(timer); } this.saveTimers.clear();
+    }
+    /** Build or Run on a source file of a neura.toml project, unless an editor target lists the file, acts on
+     * the project target that owns the file: a single-file build cannot see the project's packages. */
+    private async projectAction(document: vscode.TextDocument | undefined, action: ProjectAction): Promise<boolean> {
+        const folder = activeFolder(document);
+        if (!folder || !document || document.uri.scheme !== 'file') { return false; }
+        if (configuredTargets(folder).some(target => target.inputs.includes(document.uri.fsPath))) { return false; }
+        const owner = await projectTargetForFile(folder, document.uri.fsPath);
+        if (!owner) { return false; }
+        const reference = owner === 'ambiguous' ? await pickProjectTarget(action) : owner;
+        if (!reference) { return true; }
+        const executable = await this.getExecutable(reference.folder); if (!executable) { return true; }
+        if (!(await this.saveSources(reference.folder))) { return true; }
+        await runProjectAction(executable, action, reference);
+        return true;
     }
     async getExecutable(folder?: vscode.WorkspaceFolder): Promise<string | undefined> {
         return (await this.toolchains.require(folder))?.executable;

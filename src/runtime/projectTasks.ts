@@ -111,3 +111,27 @@ export async function runProjectAction(executable: string, action: ProjectAction
         ...(updateLock ? { updateLock } : {}) };
     await vscode.tasks.executeTask(projectTask(executable, reference.folder, definition, reference.manifest));
 }
+
+/** The project target that owns a source file: the nearest neura.toml above it inside the workspace
+ * folder, and the target whose package root contains the file. */
+export async function projectTargetForFile(folder: vscode.WorkspaceFolder, file: string): Promise<ProjectTargetReference | 'ambiguous' | undefined> {
+    const root = path.resolve(folder.uri.fsPath);
+    for (let directory = path.dirname(path.resolve(file)); directory.startsWith(root); directory = path.dirname(directory)) {
+        const manifest = path.join(directory, 'neura.toml');
+        let text: string | undefined;
+        try { text = await fs.readFile(manifest, 'utf8'); } catch { /* Keep looking upwards. */ }
+        if (text !== undefined) {
+            const project = parseManifest(text);
+            const owners = project.targets.filter(target => {
+                const packageRoot = target.package ? project.packages.get(target.package) : undefined;
+                if (packageRoot === undefined) { return false; }
+                const relative = path.relative(path.resolve(directory, packageRoot), path.resolve(file));
+                return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
+            });
+            if (owners.length === 1) { return { folder, manifest, target: owners[0]! }; }
+            return 'ambiguous';
+        }
+        if (directory === root || path.dirname(directory) === directory) { break; }
+    }
+    return undefined;
+}

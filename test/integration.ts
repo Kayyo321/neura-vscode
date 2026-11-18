@@ -239,6 +239,22 @@ async function project030(executable: string, root: string, pause: (milliseconds
     await vscode.tasks.executeTask(build);
     try { assert.equal(await done, 0, 'neura build --target web through the task'); } finally { ended?.dispose(); }
     await fs.access(path.join(directory, 'dist', 'web', 'bundle.json'));
+    // Build on a source file of the project acts on the target that owns it, not on the single file.
+    const source = vscode.Uri.file(path.join(directory, 'ui', 'main.nra'));
+    await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(source));
+    let fileEnded: vscode.Disposable | undefined;
+    const fileBuild = new Promise<{ code: number | undefined; definition: vscode.TaskDefinition }>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Build on a project file did not run a project task.')), 120000);
+      fileEnded = vscode.tasks.onDidEndTaskProcess(event => { clearTimeout(timer); resolve({ code: event.exitCode, definition: event.execution.task.definition }); });
+    });
+    await vscode.commands.executeCommand('neura.build', source);
+    try {
+      const result = await fileBuild;
+      assert.equal(result.definition.type, 'neura-project', 'Build on a project file runs the project target');
+      assert.equal(result.definition.target, 'web');
+      assert.equal(result.code, 0);
+    } finally { fileEnded?.dispose(); }
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
   } finally { await fs.rm(parent, { recursive: true, force: true }); }
 }
 
