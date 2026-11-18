@@ -50,6 +50,8 @@ A project is a `neura.toml` with packages and targets, and a `neura.lock` that t
 | Package | **Neura: Package Project Target** | `neura package` for a server or desktop target; a desktop target asks for `tar.gz`, `deb` or `zip`. |
 | Update lock | **Neura: Build Project Target and Update neura.lock** | `neura build --update-lock` after you change a dependency or component pin. |
 
+**Build** and **Run** above the editor act on the project too: on a source file inside a project, Build builds the target whose package holds the file and Run starts `neura dev` for it, unless a `neura.targets` entry lists the file.
+
 The same actions are tasks of type `neura-project` (**Terminal → Run Task**), so a `tasks.json` can name them:
 
 ```json
