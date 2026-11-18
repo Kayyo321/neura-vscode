@@ -59,7 +59,8 @@
     "test": "node --test test/*.test.cjs tests/*.test.cjs src/runtime/*.test.cjs",
     "test:integration": "node test/run-integration.cjs",
     "package": "npm run compile && vsce package --allow-missing-repository",
-    "vscode:prepublish": "npm run compile"
+    "vscode:prepublish": "npm run compile",
+    "smoke:grammar": "node scripts/grammar-smoke.cjs"
   },
   "dependencies": {
     "vscode-languageclient": "^9.0.1"
@@ -110,7 +111,12 @@
       {
         "language": "neura",
         "scopeName": "source.neura",
-        "path": "./syntaxes/neura.tmLanguage.json"
+        "path": "./syntaxes/neura.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.html": "html",
+          "meta.embedded.block.css": "css",
+          "meta.embedded.expression.neura": "neura"
+        }
       },
       {
         "language": "neurair",
@@ -637,7 +643,7 @@
         "neura.toolchain.stdlibPath": {
           "type": "string",
           "default": "",
-          "description": "Optional standard-library source directory for language-server analysis on the workspace host; normally detected from the executable. Build, run and test commands use the selected toolchain\u2019s installed standard library.",
+          "description": "Optional standard-library source directory for language-server analysis on the workspace host; normally detected from the executable. Build, run and test commands use the selected toolchain’s installed standard library.",
           "scope": "resource"
         },
         "neura.editing.autoSemicolon": {

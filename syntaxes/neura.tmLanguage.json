@@ -16,6 +16,9 @@
       "include": "#tags"
     },
     {
+      "include": "#islands"
+    },
+    {
       "include": "#declarations"
     },
     {
@@ -34,6 +37,9 @@
       "include": "#contextual"
     },
     {
+      "include": "#expression-keywords"
+    },
+    {
       "include": "#keywords"
     },
     {
@@ -41,6 +47,9 @@
     },
     {
       "include": "#numbers"
+    },
+    {
+      "include": "#optional-members"
     },
     {
       "include": "#operators"
@@ -128,27 +137,15 @@
       ]
     },
     "strings": {
-      "name": "string.quoted.double.neura",
-      "begin": "\"",
-      "beginCaptures": {
-        "0": {
-          "name": "punctuation.definition.string.begin.neura"
-        }
-      },
-      "end": "(\")|(?=$)",
-      "endCaptures": {
-        "1": {
-          "name": "punctuation.definition.string.end.neura"
-        }
-      },
       "patterns": [
         {
-          "name": "constant.character.escape.neura",
-          "match": "\\\\[nrt\\\\\"]"
+          "include": "#interpolated-string"
         },
         {
-          "name": "invalid.illegal.escape.neura",
-          "match": "\\\\."
+          "include": "#plain-string"
+        },
+        {
+          "include": "#character"
         }
       ]
     },
@@ -170,24 +167,59 @@
     },
     "primitives": {
       "name": "support.type.primitive.neura",
-      "match": "\\b(?:u?int(?:8|16|32|64)?|byte|float(?:16|32|64)?|bfloat16|bool|string|void)\\b"
+      "match": "\\b(?:u?int(?:8|16|32|64)?|byte|float(?:16|32|64)?|bfloat16|bool|string|void|any)\\b"
     },
     "tags": {
-      "name": "meta.annotation.neura",
-      "match": "(#)([A-Za-z_][A-Za-z_0-9]*)",
-      "captures": {
-        "1": {
-          "name": "punctuation.definition.annotation.neura"
+      "patterns": [
+        {
+          "name": "meta.annotation.group.neura",
+          "begin": "(#)(\\[)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.annotation.neura"
+            },
+            "2": {
+              "name": "punctuation.section.annotation.begin.neura"
+            }
+          },
+          "end": "(\\])|(?=$)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.section.annotation.end.neura"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#tag-arguments"
+            },
+            {
+              "name": "entity.name.tag.neura",
+              "match": "[A-Za-z_][A-Za-z_0-9]*"
+            },
+            {
+              "name": "punctuation.separator.delimiter.neura",
+              "match": ","
+            }
+          ]
         },
-        "2": {
-          "name": "entity.name.tag.neura"
+        {
+          "name": "meta.annotation.neura",
+          "match": "(#)([A-Za-z_][A-Za-z_0-9]*)",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.annotation.neura"
+            },
+            "2": {
+              "name": "entity.name.tag.neura"
+            }
+          }
         }
-      }
+      ]
     },
     "declarations": {
       "patterns": [
         {
-          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*class\\b)",
+          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static|promote|extensions?))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*(?:class|record)\\b)",
           "captures": {
             "1": {
               "name": "storage.type.binding.neura"
@@ -201,7 +233,7 @@
           }
         },
         {
-          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*interface\\b)",
+          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static|promote|extensions?))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*interface\\b)",
           "captures": {
             "1": {
               "name": "storage.type.binding.neura"
@@ -215,7 +247,7 @@
           }
         },
         {
-          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*enum\\b)",
+          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static|promote|extensions?))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*enum\\b)",
           "captures": {
             "1": {
               "name": "storage.type.binding.neura"
@@ -229,7 +261,7 @@
           }
         },
         {
-          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*module\\b)",
+          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static|promote|extensions?))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*(?:module|derive)\\b)",
           "captures": {
             "1": {
               "name": "storage.type.binding.neura"
@@ -243,7 +275,7 @@
           }
         },
         {
-          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*func\\b)",
+          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static|promote|extensions?))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*(?:func|iterator|html)\\b)",
           "captures": {
             "1": {
               "name": "storage.type.binding.neura"
@@ -257,7 +289,7 @@
           }
         },
         {
-          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*import\\b)",
+          "match": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static|promote|extensions?))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*=\\s*import\\b)",
           "captures": {
             "1": {
               "name": "storage.type.binding.neura"
@@ -272,7 +304,7 @@
         },
         {
           "name": "meta.binding.annotation.neura",
-          "begin": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(\\s*:)",
+          "begin": "\\b(let|const|last)((?:\\s*\\.\\s*(?:override|static|promote|extensions?))*)\\s+([A-Za-z_][A-Za-z_0-9]*)(\\s*:)",
           "beginCaptures": {
             "1": {
               "name": "storage.type.binding.neura"
@@ -312,7 +344,7 @@
           ]
         },
         {
-          "match": "\\b(const)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)",
+          "match": "\\b(const)((?:\\s*\\.\\s*(?:override|static|promote|extensions?))*)\\s+([A-Za-z_][A-Za-z_0-9]*)",
           "captures": {
             "1": {
               "name": "storage.modifier.readonly.neura"
@@ -326,7 +358,7 @@
           }
         },
         {
-          "match": "\\b(let|last)((?:\\s*\\.\\s*(?:override|static))*)\\s+([A-Za-z_][A-Za-z_0-9]*)",
+          "match": "\\b(let|last)((?:\\s*\\.\\s*(?:override|static|promote|extensions?))*)\\s+([A-Za-z_][A-Za-z_0-9]*)",
           "captures": {
             "1": {
               "name": "storage.type.binding.neura"
@@ -343,7 +375,7 @@
     },
     "generic-parameters": {
       "name": "meta.generic.parameters.neura",
-      "begin": "\\b(func|class|interface|enum)(\\s*)(<)",
+      "begin": "\\b(func|class|interface|enum|iterator|html)(\\s*)(<)",
       "beginCaptures": {
         "1": {
           "name": "storage.type.neura"
@@ -433,18 +465,39 @@
       ]
     },
     "accessors": {
-      "match": "(\\|)\\s*(get|set)\\s*(:)",
-      "captures": {
-        "1": {
-          "name": "punctuation.separator.accessor.neura"
+      "patterns": [
+        {
+          "match": "(\\|)\\s*(get|set)(?:(\\.)(virtual|override))?\\s*([:;])",
+          "captures": {
+            "1": {
+              "name": "punctuation.separator.accessor.neura"
+            },
+            "2": {
+              "name": "entity.name.function.accessor.neura"
+            },
+            "3": {
+              "name": "punctuation.accessor.neura"
+            },
+            "4": {
+              "name": "storage.modifier.accessor.neura"
+            },
+            "5": {
+              "name": "punctuation.separator.accessor.neura"
+            }
+          }
         },
-        "2": {
-          "name": "entity.name.function.accessor.neura"
-        },
-        "3": {
-          "name": "punctuation.separator.accessor.neura"
+        {
+          "match": "(=>)\\s*(set)\\s*(?=;)",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.arrow.neura"
+            },
+            "2": {
+              "name": "keyword.other.constructor-shorthand.neura"
+            }
+          }
         }
-      }
+      ]
     },
     "contextual": {
       "patterns": [
@@ -463,6 +516,92 @@
         {
           "name": "storage.type.binding.neura",
           "match": "\\blast\\b(?=\\s+[A-Za-z_][A-Za-z_0-9]*\\b)"
+        },
+        {
+          "name": "keyword.control.defer.neura",
+          "match": "(?<![.\\w])defer(?=\\s+(?:[A-Za-z_][A-Za-z_0-9]*|\\())"
+        },
+        {
+          "name": "keyword.control.using.neura",
+          "match": "(?<![.\\w])using(?=\\s*\\(\\s*[A-Za-z_][A-Za-z_0-9]*\\s*=(?!=))"
+        },
+        {
+          "name": "keyword.control.yield.neura",
+          "match": "(?<![.\\w])yield(?=\\s+(?:[A-Za-z_0-9\"\\'$(\\[!\\-]))"
+        },
+        {
+          "name": "keyword.control.conditional.unless.neura",
+          "match": "(?<=[\\w)\\]\"\\'] )unless(?=\\s+(?:[A-Za-z_0-9\"\\'$(\\[!\\-]))"
+        },
+        {
+          "match": "\\b(match)(\\.)(is)\\b(?=\\s*\\()",
+          "captures": {
+            "1": {
+              "name": "keyword.control.neura"
+            },
+            "2": {
+              "name": "punctuation.accessor.neura"
+            },
+            "3": {
+              "name": "keyword.control.neura"
+            }
+          }
+        },
+        {
+          "match": "\\b(new)\\s+(with)(?=\\s*\\()",
+          "captures": {
+            "1": {
+              "name": "keyword.control.lifecycle.neura"
+            },
+            "2": {
+              "name": "keyword.other.with.neura"
+            }
+          }
+        },
+        {
+          "match": "(?<![.\\w])(derive)\\s+([A-Za-z_][A-Za-z_0-9]*)(?:(\\.)([A-Za-z_][A-Za-z_0-9]*))?(?=\\s*<)",
+          "captures": {
+            "1": {
+              "name": "keyword.other.derive.neura"
+            },
+            "2": {
+              "name": "entity.name.namespace.neura"
+            },
+            "3": {
+              "name": "punctuation.accessor.neura"
+            },
+            "4": {
+              "name": "entity.name.type.neura"
+            }
+          }
+        },
+        {
+          "match": "^\\s*(field|variant)(?=\\s+[A-Za-z_][A-Za-z_0-9]*\\s*\\.)",
+          "captures": {
+            "1": {
+              "name": "keyword.other.derive.mapping.neura"
+            }
+          }
+        },
+        {
+          "match": "(?:(?<=[=:(,])|(?<=[=:]\\s))\\s*(record)(?=\\s*\\()",
+          "captures": {
+            "1": {
+              "name": "storage.type.record.neura"
+            }
+          }
+        },
+        {
+          "match": "(?:(?<=[=(,>])|(?<=\\bnew)|(?<=\\breturn))\\s*(iterator)(?=\\s*[(<])",
+          "captures": {
+            "1": {
+              "name": "storage.type.iterator.neura"
+            }
+          }
+        },
+        {
+          "name": "keyword.other.from.neura",
+          "match": "(?<=[)>\\s])from(?=\\s*\")"
         }
       ]
     },
@@ -543,6 +682,18 @@
     "operators": {
       "patterns": [
         {
+          "name": "keyword.operator.coalescing.neura",
+          "match": "\\?\\?"
+        },
+        {
+          "name": "keyword.operator.identity.neura",
+          "match": "!=="
+        },
+        {
+          "name": "keyword.operator.propagation.neura",
+          "match": "(?<=[\\w)\\]])\\?(?=\\s*(?:[;)\\],.]|$))"
+        },
+        {
           "name": "keyword.operator.arrow.neura",
           "match": "->|=>"
         },
@@ -560,7 +711,7 @@
         },
         {
           "name": "keyword.operator.range.neura",
-          "match": "\\.{2,3}"
+          "match": "\\.\\.=|\\.{2,3}"
         },
         {
           "name": "keyword.operator.logical.neura",
@@ -610,7 +761,7 @@
     },
     "parameters": {
       "name": "meta.function.parameters.neura",
-      "begin": "(?:(?<=func)\\s*|(?<=>)\\s*)(\\()(?=\\s*(?:[A-Za-z_][A-Za-z_0-9]*\\s*:|\\)))",
+      "begin": "(?:(?<=\\bfunc)|(?<=\\biterator)|(?<=\\bhtml)|(?<=\\brecord)|(?<=>))\\s*(\\()(?=\\s*(?:\\)|#|(?:[A-Za-z_][A-Za-z_0-9]*\\s*,\\s*)*[A-Za-z_][A-Za-z_0-9]*\\s*:(?!:)|(?:[A-Za-z_][A-Za-z_0-9]*\\s*,\\s*)*[A-Za-z_][A-Za-z_0-9]*\\s*\\)\\s*(?:=>|\\{)))",
       "beginCaptures": {
         "1": {
           "name": "punctuation.section.parameters.begin.neura"
@@ -630,15 +781,298 @@
           "include": "#tags"
         },
         {
-          "match": "\\b([A-Za-z_][A-Za-z_0-9]*)(\\s*:)",
-          "captures": {
-            "1": {
-              "name": "variable.parameter.neura"
-            },
-            "2": {
+          "name": "meta.parameter.type.neura",
+          "begin": ":(?!:)",
+          "beginCaptures": {
+            "0": {
               "name": "punctuation.separator.type.neura"
             }
+          },
+          "end": "(?=[,)=])",
+          "patterns": [
+            {
+              "include": "#type-expression"
+            }
+          ]
+        },
+        {
+          "name": "meta.parameter.default.neura",
+          "begin": "=(?![=>])",
+          "beginCaptures": {
+            "0": {
+              "name": "keyword.operator.assignment.default.neura"
+            }
+          },
+          "end": "(?=[,)])",
+          "patterns": [
+            {
+              "include": "#default-group"
+            },
+            {
+              "include": "#hole-expression"
+            }
+          ]
+        },
+        {
+          "name": "storage.modifier.neura",
+          "match": "\\blast\\b(?=\\s+[A-Za-z_][A-Za-z_0-9]*)"
+        },
+        {
+          "name": "variable.parameter.neura",
+          "match": "\\b[A-Za-z_][A-Za-z_0-9]*\\b"
+        },
+        {
+          "include": "#punctuation"
+        }
+      ]
+    },
+    "plain-string": {
+      "name": "string.quoted.double.neura",
+      "begin": "\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.neura"
+        }
+      },
+      "end": "(\")|(?=$)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.string.end.neura"
+        }
+      },
+      "patterns": [
+        {
+          "name": "constant.character.escape.neura",
+          "match": "\\\\(?:[nrt0\\\\\\'\"]|x[0-9A-Fa-f]{2}|u\\{[0-9A-Fa-f]{1,6}\\})"
+        },
+        {
+          "name": "invalid.illegal.escape.neura",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "character": {
+      "name": "constant.character.neura",
+      "match": "(')(?:([^'\\\\\\r\\n])|(\\\\(?:[nrt0\\\\\\'\"]|x[0-9A-Fa-f]{2}|u\\{[0-9A-Fa-f]{1,6}\\})))(')",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.character.begin.neura"
+        },
+        "3": {
+          "name": "constant.character.escape.neura"
+        },
+        "4": {
+          "name": "punctuation.definition.character.end.neura"
+        }
+      }
+    },
+    "interpolated-string": {
+      "name": "string.interpolated.neura",
+      "begin": "(\\$)(\")",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.string.interpolated.neura"
+        },
+        "2": {
+          "name": "punctuation.definition.string.begin.neura"
+        }
+      },
+      "end": "(\")|(?=$)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.string.end.neura"
+        }
+      },
+      "patterns": [
+        {
+          "name": "constant.character.escape.brace.neura",
+          "match": "\\{\\{|\\}\\}"
+        },
+        {
+          "name": "constant.character.escape.neura",
+          "match": "\\\\(?:[nrt0\\\\\\'\"]|x[0-9A-Fa-f]{2}|u\\{[0-9A-Fa-f]{1,6}\\})"
+        },
+        {
+          "name": "invalid.illegal.escape.neura",
+          "match": "\\\\."
+        },
+        {
+          "include": "#interpolation-hole"
+        },
+        {
+          "name": "invalid.illegal.brace.neura",
+          "match": "\\}"
+        }
+      ]
+    },
+    "interpolation-hole": {
+      "name": "meta.interpolation.neura",
+      "contentName": "meta.embedded.expression.neura",
+      "begin": "\\{",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.interpolation.begin.neura"
+        }
+      },
+      "end": "\\}|(?=$)",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.interpolation.end.neura"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#hole-group"
+        },
+        {
+          "name": "meta.format-specification.neura",
+          "begin": ":",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.separator.format.neura"
+            }
+          },
+          "end": "(?=\\})|(?=$)",
+          "patterns": [
+            {
+              "include": "#interpolation-hole"
+            },
+            {
+              "name": "constant.other.format-specification.neura",
+              "match": "[^{}]+"
+            }
+          ]
+        },
+        {
+          "include": "#hole-expression"
+        }
+      ]
+    },
+    "hole-group": {
+      "begin": "[(\\[{]",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.group.neura"
+        }
+      },
+      "end": "[)\\]}]|(?=$)",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.group.neura"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#hole-group"
+        },
+        {
+          "include": "#hole-expression"
+        }
+      ]
+    },
+    "hole-expression": {
+      "patterns": [
+        {
+          "include": "#strings"
+        },
+        {
+          "include": "#expression-keywords"
+        },
+        {
+          "include": "#primitives"
+        },
+        {
+          "include": "#keywords"
+        },
+        {
+          "include": "#numbers"
+        },
+        {
+          "include": "#optional-members"
+        },
+        {
+          "include": "#operators"
+        },
+        {
+          "include": "#members"
+        },
+        {
+          "name": "punctuation.separator.delimiter.neura",
+          "match": ","
+        }
+      ]
+    },
+    "tag-arguments": {
+      "begin": "\\(",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.group.neura"
+        }
+      },
+      "end": "\\)|(?=$)",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.group.neura"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#tag-arguments"
+        },
+        {
+          "include": "#strings"
+        },
+        {
+          "include": "#numbers"
+        },
+        {
+          "include": "#keywords"
+        },
+        {
+          "match": "\\b([A-Za-z_][A-Za-z_0-9]*)\\s*(:)(?!:)",
+          "captures": {
+            "1": {
+              "name": "variable.parameter.label.neura"
+            },
+            "2": {
+              "name": "punctuation.separator.label.neura"
+            }
           }
+        },
+        {
+          "include": "#members"
+        },
+        {
+          "include": "#punctuation"
+        }
+      ]
+    },
+    "default-group": {
+      "begin": "[(\\[{]",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.group.neura"
+        }
+      },
+      "end": "[)\\]}]",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.group.neura"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#default-group"
+        },
+        {
+          "include": "#hole-expression"
+        }
+      ]
+    },
+    "type-expression": {
+      "patterns": [
+        {
+          "include": "#comments"
         },
         {
           "include": "#type-arguments"
@@ -647,15 +1081,607 @@
           "include": "#primitives"
         },
         {
-          "name": "entity.name.type.neura",
-          "match": "\\b[A-Za-z_][A-Za-z_0-9]*\\b"
+          "name": "keyword.operator.variadic.neura",
+          "match": "\\.\\.\\."
+        },
+        {
+          "name": "storage.type.neura",
+          "match": "\\b(?:func|class|interface|enum|module)\\b"
+        },
+        {
+          "begin": "\\(",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.section.group.neura"
+            }
+          },
+          "end": "\\)",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.group.neura"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#type-expression"
+            },
+            {
+              "name": "punctuation.separator.delimiter.neura",
+              "match": ","
+            }
+          ]
+        },
+        {
+          "name": "keyword.operator.arrow.neura",
+          "match": "->"
         },
         {
           "name": "keyword.operator.reference.neura",
           "match": "&"
         },
         {
-          "include": "#punctuation"
+          "name": "keyword.operator.optional.neura",
+          "match": "\\?"
+        },
+        {
+          "name": "entity.name.type.neura",
+          "match": "\\b[A-Za-z_][A-Za-z_0-9]*\\b"
+        },
+        {
+          "name": "punctuation.section.brackets.neura",
+          "match": "[\\[\\]]"
+        },
+        {
+          "name": "punctuation.accessor.neura",
+          "match": "\\."
+        }
+      ]
+    },
+    "expression-keywords": {
+      "patterns": [
+        {
+          "name": "keyword.operator.word.neura",
+          "match": "\\bnot\\b"
+        },
+        {
+          "name": "keyword.operator.expression.typeof.neura",
+          "match": "\\btypeof\\b"
+        },
+        {
+          "name": "keyword.operator.expression.nameof.neura",
+          "match": "(?<![.\\w])nameof(?=\\s*\\()"
+        }
+      ]
+    },
+    "optional-members": {
+      "patterns": [
+        {
+          "match": "(\\?\\.)\\s*([A-Za-z_][A-Za-z_0-9]*)(?=\\s*(?:<[^;{}\\n]*>\\s*)?\\()",
+          "captures": {
+            "1": {
+              "name": "punctuation.accessor.optional.neura"
+            },
+            "2": {
+              "name": "entity.name.function.member.neura"
+            }
+          }
+        },
+        {
+          "match": "(\\?\\.)\\s*([A-Za-z_][A-Za-z_0-9]*)",
+          "captures": {
+            "1": {
+              "name": "punctuation.accessor.optional.neura"
+            },
+            "2": {
+              "name": "variable.other.property.neura"
+            }
+          }
+        }
+      ]
+    },
+    "islands": {
+      "patterns": [
+        {
+          "name": "meta.embedded.html.form.neura",
+          "begin": "(?:(?<=[=(,>])|(?<=\\bnew)|(?<=\\breturn))\\s*(html)\\s*(\\{)",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.html.neura"
+            },
+            "2": {
+              "name": "punctuation.section.embedded.begin.neura"
+            }
+          },
+          "end": "\\}",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.embedded.end.neura"
+            }
+          },
+          "contentName": "meta.embedded.block.html",
+          "patterns": [
+            {
+              "include": "#html-content"
+            }
+          ]
+        },
+        {
+          "name": "meta.html.factory.neura",
+          "begin": "(?:(?<=[=(,>])|(?<=\\bnew)|(?<=\\breturn))\\s*(html)(?=\\s*(?:<[^<>;]*>\\s*)?\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.html.neura"
+            }
+          },
+          "end": "(?<=\\})|(?=;)",
+          "patterns": [
+            {
+              "include": "#generic-parameters-tail"
+            },
+            {
+              "include": "#parameters"
+            },
+            {
+              "name": "keyword.operator.arrow.neura",
+              "match": "->"
+            },
+            {
+              "name": "keyword.other.from.neura",
+              "match": "\\bfrom\\b"
+            },
+            {
+              "include": "#strings"
+            },
+            {
+              "begin": "\\{",
+              "beginCaptures": {
+                "0": {
+                  "name": "punctuation.section.embedded.begin.neura"
+                }
+              },
+              "end": "\\}",
+              "endCaptures": {
+                "0": {
+                  "name": "punctuation.section.embedded.end.neura"
+                }
+              },
+              "contentName": "meta.embedded.block.html",
+              "patterns": [
+                {
+                  "include": "#html-content"
+                }
+              ]
+            },
+            {
+              "include": "#type-expression"
+            }
+          ]
+        },
+        {
+          "name": "meta.embedded.css.form.neura",
+          "begin": "(?:(?<=[=(,>])|(?<=\\bnew)|(?<=\\breturn))\\s*(css)(?:(\\.)(module))?\\s*(\\{)",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.css.neura"
+            },
+            "2": {
+              "name": "punctuation.accessor.neura"
+            },
+            "3": {
+              "name": "storage.modifier.css.neura"
+            },
+            "4": {
+              "name": "punctuation.section.embedded.begin.neura"
+            }
+          },
+          "end": "\\}",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.embedded.end.neura"
+            }
+          },
+          "contentName": "meta.embedded.block.css",
+          "patterns": [
+            {
+              "include": "#css-content"
+            }
+          ]
+        },
+        {
+          "match": "(?:(?<=[=(,>])|(?<=\\bnew)|(?<=\\breturn))\\s*(css)(?:(\\.)(module))?\\s+(from)(?=\\s*\")",
+          "captures": {
+            "1": {
+              "name": "storage.type.css.neura"
+            },
+            "2": {
+              "name": "punctuation.accessor.neura"
+            },
+            "3": {
+              "name": "storage.modifier.css.neura"
+            },
+            "4": {
+              "name": "keyword.other.from.neura"
+            }
+          }
+        }
+      ]
+    },
+    "generic-parameters-tail": {
+      "name": "meta.generic.parameters.neura",
+      "begin": "\\G\\s*(<)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.typeparameters.begin.neura"
+        }
+      },
+      "end": ">",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.typeparameters.end.neura"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#comments"
+        },
+        {
+          "name": "meta.generic.bound.neura",
+          "begin": ":",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.separator.type.neura"
+            }
+          },
+          "end": "(?=,\\s*[A-Za-z_][A-Za-z_0-9]*\\s*:|>)",
+          "patterns": [
+            {
+              "include": "#type-arguments"
+            },
+            {
+              "include": "#primitives"
+            },
+            {
+              "name": "entity.name.type.neura",
+              "match": "\\b[A-Za-z_][A-Za-z_0-9]*\\b"
+            },
+            {
+              "name": "punctuation.section.bounds.neura",
+              "match": "[\\[\\],.]"
+            }
+          ]
+        },
+        {
+          "name": "entity.name.type.parameter.neura",
+          "match": "\\b[A-Za-z_][A-Za-z_0-9]*\\b"
+        },
+        {
+          "name": "punctuation.separator.typeparameters.neura",
+          "match": ","
+        }
+      ]
+    },
+    "html-content": {
+      "patterns": [
+        {
+          "name": "comment.block.html",
+          "begin": "<!--",
+          "end": "-->",
+          "captures": {
+            "0": {
+              "name": "punctuation.definition.comment.html"
+            }
+          }
+        },
+        {
+          "name": "meta.tag.html",
+          "begin": "(<)(/?)([A-Za-z][A-Za-z0-9:_-]*|[!?])",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.begin.html"
+            },
+            "2": {
+              "name": "punctuation.definition.tag.begin.html"
+            },
+            "3": {
+              "name": "entity.name.tag.html"
+            }
+          },
+          "end": "/?>",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.tag.end.html"
+            }
+          },
+          "patterns": [
+            {
+              "match": "\\b(on|prop|var)(:)([A-Za-z_][\\w.-]*)",
+              "captures": {
+                "1": {
+                  "name": "keyword.other.directive.neura"
+                },
+                "2": {
+                  "name": "punctuation.separator.directive.neura"
+                },
+                "3": {
+                  "name": "entity.other.attribute-name.html"
+                }
+              }
+            },
+            {
+              "name": "entity.other.attribute-name.html",
+              "match": "[^\\s\"\\'<>/={}]+"
+            },
+            {
+              "name": "punctuation.separator.key-value.html",
+              "match": "="
+            },
+            {
+              "name": "string.quoted.double.html",
+              "begin": "\"",
+              "end": "\"",
+              "patterns": [
+                {
+                  "include": "#html-entity"
+                }
+              ]
+            },
+            {
+              "name": "string.quoted.single.html",
+              "begin": "'",
+              "end": "'",
+              "patterns": [
+                {
+                  "include": "#html-entity"
+                }
+              ]
+            },
+            {
+              "include": "#html-hole"
+            }
+          ]
+        },
+        {
+          "include": "#html-control"
+        },
+        {
+          "include": "#html-hole"
+        },
+        {
+          "include": "#html-entity"
+        }
+      ]
+    },
+    "html-entity": {
+      "name": "constant.character.entity.html",
+      "match": "&(?:[A-Za-z][A-Za-z0-9]*|#[0-9]+|#[xX][0-9A-Fa-f]+);"
+    },
+    "html-hole": {
+      "name": "meta.interpolation.neura",
+      "contentName": "meta.embedded.expression.neura",
+      "begin": "\\{",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.interpolation.begin.neura"
+        }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.interpolation.end.neura"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#template-group"
+        },
+        {
+          "include": "#template-expression"
+        }
+      ]
+    },
+    "template-group": {
+      "begin": "[(\\[{]",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.group.neura"
+        }
+      },
+      "end": "[)\\]}]",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.group.neura"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#template-group"
+        },
+        {
+          "include": "#template-expression"
+        }
+      ]
+    },
+    "template-expression": {
+      "patterns": [
+        {
+          "name": "comment.block.neura",
+          "begin": "/\\*",
+          "end": "\\*/"
+        },
+        {
+          "include": "#comments"
+        },
+        {
+          "include": "#hole-expression"
+        }
+      ]
+    },
+    "html-control": {
+      "name": "meta.control.template.neura",
+      "begin": "(@)(else(?:\\s+if)?|[A-Za-z][A-Za-z0-9_]*)\\b",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.keyword.neura"
+        },
+        "2": {
+          "name": "keyword.control.template.neura"
+        }
+      },
+      "end": "(?<=\\})",
+      "patterns": [
+        {
+          "begin": "\\G\\s*(\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.section.group.neura"
+            }
+          },
+          "end": "\\)",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.group.neura"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#template-group"
+            },
+            {
+              "include": "#template-expression"
+            }
+          ]
+        },
+        {
+          "begin": "\\{",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.section.block.begin.neura"
+            }
+          },
+          "end": "\\}",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.block.end.neura"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#html-content"
+            }
+          ]
+        }
+      ]
+    },
+    "css-content": {
+      "patterns": [
+        {
+          "name": "comment.block.css",
+          "begin": "/\\*",
+          "end": "\\*/",
+          "captures": {
+            "0": {
+              "name": "punctuation.definition.comment.css"
+            }
+          }
+        },
+        {
+          "name": "string.quoted.double.css",
+          "begin": "\"",
+          "end": "\"|(?=$)",
+          "patterns": [
+            {
+              "name": "constant.character.escape.css",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.css",
+          "begin": "'",
+          "end": "'|(?=$)",
+          "patterns": [
+            {
+              "name": "constant.character.escape.css",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "match": "\\b(url)(\\()(?!\\s*[\"\\'])([^)]*)(\\))",
+          "captures": {
+            "1": {
+              "name": "support.function.url.css"
+            },
+            "2": {
+              "name": "punctuation.section.function.begin.css"
+            },
+            "3": {
+              "name": "variable.parameter.url.css"
+            },
+            "4": {
+              "name": "punctuation.section.function.end.css"
+            }
+          }
+        },
+        {
+          "name": "keyword.control.at-rule.css",
+          "match": "@[A-Za-z-]+"
+        },
+        {
+          "name": "meta.property-list.css",
+          "begin": "\\{",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.section.property-list.begin.css"
+            }
+          },
+          "end": "\\}",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.property-list.end.css"
+            }
+          },
+          "patterns": [
+            {
+              "match": "(?<![\\w-])(--[\\w-]+|-?[A-Za-z][\\w-]*)\\s*(:)(?![\\w-]*\\s*[{,(])",
+              "captures": {
+                "1": {
+                  "name": "support.type.property-name.css"
+                },
+                "2": {
+                  "name": "punctuation.separator.key-value.css"
+                }
+              }
+            },
+            {
+              "include": "#css-content"
+            }
+          ]
+        },
+        {
+          "begin": "[(\\[]",
+          "end": "[)\\]]",
+          "patterns": [
+            {
+              "include": "#css-content"
+            }
+          ]
+        },
+        {
+          "name": "constant.other.color.rgb-value.hex.css",
+          "match": "#[0-9A-Fa-f]{3,8}\\b"
+        },
+        {
+          "name": "constant.numeric.css",
+          "match": "(?<![\\w-])-?(?:\\d+\\.?\\d*|\\.\\d+)(?:[A-Za-z%]+)?"
+        },
+        {
+          "name": "entity.other.attribute-name.class.css",
+          "match": "\\.-?[A-Za-z_][\\w-]*"
+        },
+        {
+          "name": "punctuation.terminator.rule.css",
+          "match": ";"
         }
       ]
     }

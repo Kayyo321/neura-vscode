@@ -11,6 +11,21 @@
       "match": ";.*$"
     },
     {
+      "match": "\\b(bytes)\\s+([0-9a-fA-F]+)\\b",
+      "captures": {
+        "1": {
+          "name": "storage.modifier.nvra"
+        },
+        "2": {
+          "name": "constant.numeric.hex.nvra"
+        }
+      }
+    },
+    {
+      "name": "entity.name.function.nvra",
+      "match": "(?<![\\w-])(?:transferable-layouts|allocate-collection|region-collection|repeat-collection|allocate-object|write-component|append-element|construct-text|move-to-region|read-component|release-region|remove-element|text-from-utf8|native-library|region-object|region-repeat|write-element|native-symbol|enter-region|message-trap|read-element|read-version|write-global|concat-text|free-object|read-global|read-length|scalar-text|write-field|class-cast|class-hash|class-text|hook-enter|hook-leave|read-field|text-equal|text-slice|source-map|class-is|read-tag)(?![\\w-])"
+    },
+    {
       "name": "string.quoted.double.nvra",
       "begin": "\"",
       "end": "\"",
@@ -27,7 +42,7 @@
     },
     {
       "name": "storage.modifier.nvra",
-      "match": "\\b(?:inputs|outputs|parameters|success|error|result|frame|selector|arguments|assign|resume|error-resume|reason|bytes|signed|unsigned|float|text|array|void|reference|object|fields|offset|length|align)\\b"
+      "match": "\\b(?:inputs|outputs|parameters|success|error|result|frame|selector|arguments|assign|resume|error-resume|reason|bytes|signed|unsigned|float|text|array|void|reference|object|fields|offset|length|align|slot|location|state|immediate|lanes|target|parent|interfaces|initializer|kernel|more|aggregate|activation|bias|edge|column|line|path|poll|record|width|callback|value|construct|list|bool|bfloat)\\b"
     },
     {
       "name": "entity.name.function.nvra",

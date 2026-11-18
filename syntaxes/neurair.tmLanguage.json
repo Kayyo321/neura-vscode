@@ -28,15 +28,15 @@
     },
     {
       "name": "keyword.control.neurair",
-      "match": "\\b(?:initialize|store|load|reference|receiver|field|index|collection|repeat_collection|reference_place|integer|float|string|boolean|unary|binary|short_circuit|call|virtual_call|external_call|base_initialize|allocate|length|append|remove_at|return|block|branch|loop|break|continue|destroy|discard|convert|collection_version|fail|tuple|project|enum_construct|enum_tag|enum_project|comparison_chain|scoped_value|select_value|make_closure|call_closure|nil|class_hash|class_text|class_is|class_cast|value_equals|value_hash|value_text|text_length|text_byte_at|text_slice|text_from_utf8|text_equal|reinterpret_float|trap_message|task_scope|spawn|scheduler_call)\\b"
+      "match": "\\b(?:initialize|store|load|reference|receiver|field|index|collection|repeat_collection|reference_place|integer|float|string|boolean|unary|binary|short_circuit|call|virtual_call|external_call|base_initialize|allocate|length|append|remove_at|return|block|branch|loop|break|continue|destroy|discard|convert|collection_version|fail|tuple|project|enum_construct|enum_tag|enum_project|comparison_chain|scoped_value|select_value|make_closure|call_closure|nil|class_hash|class_text|class_is|class_cast|value_equals|value_hash|value_text|text_length|text_byte_at|text_slice|text_from_utf8|text_equal|reinterpret_float|trap_message|task_scope|spawn|scheduler_call|any_pack|any_tag|any_unpack|hook_read|hook_admit|conformance_call|cleanup|pending|yield|concat_text|type_of|reflect|latch)\\b"
     },
     {
       "name": "storage.type.neurair",
-      "match": "\\b(?:file|module|class|alias|import|function|parameter|local|global|type_parameter|enum|variant|interface|symbol|symbols|type|attributes|export|mutable|const|static|override|abstract|at|frame|parameters|result)\\b"
+      "match": "\\b(?:file|module|class|alias|import|function|parameter|local|global|type_parameter|enum|variant|interface|symbol|symbols|type|attributes|export|mutable|const|static|override|abstract|at|frame|parameters|result|body|operands|else|owner|defined)\\b"
     },
     {
       "name": "support.type.primitive.neurair",
-      "match": "\\b(?:void|bool|string|u?int(?:8|16|32|64)?|byte|float(?:16|32|64)?|bfloat16|array|list|object|callable|tuple)\\b"
+      "match": "\\b(?:void|bool|string|u?int(?:8|16|32|64)?|byte|float(?:16|32|64)?|bfloat16|array|list|object|callable|tuple|any)\\b"
     },
     {
       "name": "constant.language.neurair",
