@@ -41,7 +41,8 @@
     "onLanguage:neurair",
     "onLanguage:nvra",
     "onDebug:neura",
-    "workspaceContains:**/*.nra"
+    "workspaceContains:**/*.nra",
+    "workspaceContains:**/neura.toml"
   ],
   "capabilities": {
     "untrustedWorkspaces": {
@@ -272,6 +273,30 @@
         "title": "Refresh Projects",
         "category": "Neura",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "neura.projectBuild",
+        "title": "Build Project Target",
+        "category": "Neura",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "neura.projectDev",
+        "title": "Develop Project Target (neura dev)",
+        "category": "Neura",
+        "icon": "$(play-circle)"
+      },
+      {
+        "command": "neura.projectPackage",
+        "title": "Package Project Target",
+        "category": "Neura",
+        "icon": "$(archive)"
+      },
+      {
+        "command": "neura.projectUpdateLock",
+        "title": "Build Project Target and Update neura.lock",
+        "category": "Neura",
+        "icon": "$(lock)"
       },
       {
         "command": "neura.restartLanguageServer",
@@ -676,6 +701,49 @@
             "type": "string"
           }
         }
+      },
+      {
+        "type": "neura-project",
+        "required": [
+          "action",
+          "target"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "build",
+              "dev",
+              "package"
+            ],
+            "description": "neura build --target, neura dev or neura package."
+          },
+          "target": {
+            "type": "string",
+            "description": "A target of the project manifest."
+          },
+          "project": {
+            "type": "string",
+            "description": "Manifest path relative to the workspace folder (default neura.toml)."
+          },
+          "port": {
+            "type": "number",
+            "description": "Port for neura dev (default 4310; 0 asks the system)."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "tar.gz",
+              "deb",
+              "zip"
+            ],
+            "description": "Package format for neura package (default: the manifest's packaging.formats)."
+          },
+          "updateLock": {
+            "type": "boolean",
+            "description": "Pass --update-lock to neura build."
+          }
+        }
       }
     ],
     "debuggers": [
@@ -816,6 +884,16 @@
           "command": "neura.circuitExplorer",
           "when": "resourceExtname == .nvr && isWorkspaceTrusted",
           "group": "neura@4"
+        },
+        {
+          "command": "neura.projectBuild",
+          "when": "resourceFilename == neura.toml && isWorkspaceTrusted",
+          "group": "neura@5"
+        },
+        {
+          "command": "neura.projectDev",
+          "when": "resourceFilename == neura.toml && isWorkspaceTrusted",
+          "group": "neura@6"
         }
       ],
       "view/title": [
@@ -849,6 +927,28 @@
         {
           "command": "neura.generateDocumentation",
           "when": "resourceLangId == neura && isWorkspaceTrusted",
+          "group": "neura@4"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "neura.projectBuild",
+          "when": "view == neura.projects && viewItem =~ /^neuraProjectTarget/ && isWorkspaceTrusted",
+          "group": "inline@1"
+        },
+        {
+          "command": "neura.projectDev",
+          "when": "view == neura.projects && viewItem =~ /^neuraProjectTarget/ && isWorkspaceTrusted",
+          "group": "inline@2"
+        },
+        {
+          "command": "neura.projectPackage",
+          "when": "view == neura.projects && viewItem == neuraProjectTargetPackageable && isWorkspaceTrusted",
+          "group": "inline@3"
+        },
+        {
+          "command": "neura.projectUpdateLock",
+          "when": "view == neura.projects && viewItem =~ /^neuraProjectTarget/ && isWorkspaceTrusted",
           "group": "neura@4"
         }
       ]
@@ -1040,6 +1140,53 @@
           "code": 5,
           "message": 6
         }
+      },
+      {
+        "name": "neura-project",
+        "owner": "neura",
+        "source": "Neura",
+        "fileLocation": [
+          "autoDetect",
+          "${workspaceFolder}"
+        ],
+        "pattern": {
+          "regexp": "^(.*?):(\\d+):(\\d+): (error|warning)(?:\\[([^\\]]+)\\])?: (.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "code": 5,
+          "message": 6
+        }
+      },
+      {
+        "name": "neura-project-detail",
+        "owner": "neura",
+        "source": "Neura",
+        "fileLocation": [
+          "autoDetect",
+          "${workspaceFolder}"
+        ],
+        "pattern": [
+          {
+            "regexp": "^(error|warning)\\[([^\\]]+)\\]: (.*)$",
+            "severity": 1,
+            "code": 2,
+            "message": 3
+          },
+          {
+            "regexp": "^\\s*--> (.*):(\\d+):(\\d+)$",
+            "file": 1,
+            "line": 2,
+            "column": 3
+          }
+        ]
+      }
+    ],
+    "tomlValidation": [
+      {
+        "fileMatch": "neura.toml",
+        "url": "./schemas/neura.toml.schema.json"
       }
     ]
   }

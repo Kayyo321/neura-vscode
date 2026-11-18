@@ -32,5 +32,9 @@
     "neura": "neura",
     "neurair": "nir",
     "nvra": "nvra"
+  },
+  "fileNames": {
+    "neura.toml": "neura",
+    "neura.lock": "file"
   }
 }

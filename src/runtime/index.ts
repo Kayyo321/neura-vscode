@@ -1,12 +1,16 @@
 import * as vscode from 'vscode';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { activeFolder, configuration, configuredTargets, resolveTarget, ResolvedTarget } from './configuration';
+import { activeFolder, configuration, configuredTargets, resolveTarget, ResolvedTarget, toolEnvironment } from './configuration';
 import { Toolchains } from './toolchain';
 import { LanguageServices } from './language';
 import { BuildResult, NeuraTaskProvider, TaskRunner } from './tasks';
 import { CliDiagnostics } from './diagnostics';
 import { createProject, Projects } from './projects';
+import { pickProjectTarget, ProjectTaskProvider, runProjectAction } from './projectTasks';
+import { ProjectAction } from './manifest';
+import { isRuntimeOnly } from './toolchain';
+import { runProcess } from './process';
 
 export type { TargetConfiguration, ResolvedTarget, TargetKind } from './configuration';
 export type { Toolchain } from './toolchain';
@@ -53,12 +57,37 @@ export class Runtime implements vscode.Disposable {
         command('neura.clean', async argument => this.clean(await this.document(argument)));
         command('neura.rebuild', async argument => { const document = await this.document(argument); await this.clean(document); await this.build(document); });
         command('neura.runArtifact', () => this.runArtifact());
-        command('neura.newProject', () => createProject());
+        command('neura.newProject', async () => {
+            const folder = activeFolder();
+            const tool = vscode.workspace.isTrusted ? await this.toolchains.discover(folder) : undefined;
+            // `neura new` and its templates came with the 0.3 SDK.
+            const sdk = tool && !isRuntimeOnly(tool) && /^(?:0\.(?:[3-9]|\d{2,})|[1-9]\d*\.)/.test(tool.version);
+            await createProject(sdk ? async (directory, template, name) => {
+                const result = await runProcess(tool.executable, ['new', directory, '--template', template, ...(name ? ['--name', name] : [])],
+                    { cwd: path.dirname(directory), env: toolEnvironment(folder), timeout: 60000 });
+                this.output.appendLine(`neura new ${template}: ${(result.stdout + result.stderr).trim()}`);
+                return { code: result.code, message: result.stderr || result.stdout };
+            } : undefined);
+        });
+        const projectCommand = (name: string, action: ProjectAction, updateLock = false): void => command(name, async argument => {
+            const reference = await pickProjectTarget(action, argument); if (!reference) { return; }
+            const executable = await this.getExecutable(reference.folder); if (!executable) { return; }
+            if (!(await this.saveSources(reference.folder))) { return; }
+            await runProjectAction(executable, action, reference, updateLock);
+        });
+        projectCommand('neura.projectBuild', 'build');
+        projectCommand('neura.projectDev', 'dev');
+        projectCommand('neura.projectPackage', 'package');
+        projectCommand('neura.projectUpdateLock', 'build', true);
         command('neura.refreshProjects', () => this.projects?.refresh());
         command('neura.restartLanguageServer', async () => {
             const folder = activeFolder(); if (folder) { await this.language.restart(folder); }
         });
         command('neura.showOutput', () => this.output.show());
+        const manifests = vscode.workspace.createFileSystemWatcher('**/neura.toml');
+        manifests.onDidCreate(() => this.projects?.refresh()); manifests.onDidChange(() => this.projects?.refresh()); manifests.onDidDelete(() => this.projects?.refresh());
+        this.disposables.push(manifests,
+            vscode.tasks.registerTaskProvider('neura-project', new ProjectTaskProvider(async folder => (await this.toolchains.discover(folder))?.executable)));
         this.disposables.push(vscode.tasks.registerTaskProvider('neura', new NeuraTaskProvider(async folder => (await this.toolchains.discover(folder))?.executable)),
             vscode.window.onDidChangeActiveTextEditor(editor => { void this.toolchains.showStatus(activeFolder(editor?.document)); }),
             vscode.workspace.onDidSaveTextDocument(document => { void this.onSave(document); }),

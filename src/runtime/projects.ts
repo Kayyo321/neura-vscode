@@ -2,8 +2,11 @@ import * as vscode from 'vscode';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { configuration, configuredTargets, resolvePath, ResolvedTarget } from './configuration';
+import { findProjects, ProjectTargetReference } from './projectTasks';
+import { projectTemplates, validProjectName } from './manifest';
 
 class ProjectItem extends vscode.TreeItem {
+    projectTarget?: ProjectTargetReference;
     constructor(label: string, public readonly children: ProjectItem[] = []) {
         super(label, children.length ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
     }
@@ -17,9 +20,25 @@ export class Projects implements vscode.TreeDataProvider<ProjectItem>, vscode.Di
     refresh(): void { this.changed.fire(undefined); }
     dispose(): void { this.registration.dispose(); this.changed.dispose(); }
     getTreeItem(item: ProjectItem): vscode.TreeItem { return item; }
-    getChildren(item?: ProjectItem): ProjectItem[] {
+    async getChildren(item?: ProjectItem): Promise<ProjectItem[]> {
         if (item) { return item.children; }
-        return (vscode.workspace.workspaceFolders ?? []).map(folder => {
+        const manifests = vscode.workspace.isTrusted ? await findProjects() : [];
+        const sdkProjects = manifests.map(({ folder, manifest, project }) => {
+            const targets = project.targets.map(target => {
+                const entry = new ProjectItem(target.name); entry.description = target.kind || 'target';
+                entry.iconPath = new vscode.ThemeIcon(target.kind === 'web' ? 'globe' : target.kind === 'server' ? 'server' : target.kind === 'desktop' ? 'window' : 'symbol-event');
+                entry.contextValue = target.kind === 'web' ? 'neuraProjectTarget' : 'neuraProjectTargetPackageable';
+                entry.projectTarget = { folder, manifest, target };
+                entry.tooltip = `${target.name} (${target.kind}${target.package ? `, package ${target.package}` : ''}) in ${vscode.workspace.asRelativePath(manifest)}`;
+                return entry;
+            });
+            const node = new ProjectItem(project.name ?? path.basename(path.dirname(manifest)), targets);
+            node.description = vscode.workspace.asRelativePath(manifest); node.iconPath = new vscode.ThemeIcon('package');
+            node.resourceUri = vscode.Uri.file(manifest);
+            node.command = { command: 'vscode.open', title: 'Open Manifest', arguments: [node.resourceUri] };
+            node.collapsibleState = vscode.TreeItemCollapsibleState.Expanded; return node;
+        });
+        return [...sdkProjects, ...(vscode.workspace.workspaceFolders ?? []).map(folder => {
             const roots = configuration(folder).get<string[]>('sourceRoots', ['.']).map(root => {
                 const uri = vscode.Uri.file(resolvePath(root, folder));
                 const entry = new ProjectItem(root); entry.resourceUri = uri; entry.iconPath = new vscode.ThemeIcon('folder');
@@ -30,7 +49,7 @@ export class Projects implements vscode.TreeDataProvider<ProjectItem>, vscode.Di
             catch (error) { targets = [new ProjectItem(String(error))]; }
             const project = new ProjectItem(folder.name, [new ProjectItem('Source Roots', roots), new ProjectItem('Targets', targets)]);
             project.iconPath = new vscode.ThemeIcon('project'); project.contextValue = 'neuraProject'; return project;
-        });
+        })];
     }
 }
 
@@ -80,15 +99,37 @@ let ExampleTests = module (
 );
 `;
 
-export async function createProject(): Promise<void> {
+/** Runs `neura new <directory> --template <id> [--name <name>]` and reports whether it succeeded. */
+export type NewProjectTool = (directory: string, template: string, name: string | undefined) => Promise<{ code: number; message: string }>;
+
+export async function createProject(newProject?: NewProjectTool): Promise<void> {
     if (!vscode.workspace.isTrusted) { void vscode.window.showInformationMessage('Trust this workspace before creating a Neura project.'); return; }
+    const sdkTemplates = newProject ? projectTemplates.map(template => ({ label: template.label, detail: `${template.detail} (neura new --template ${template.id})`,
+        templateId: `sdk:${template.id}` })) : [];
     const template = await vscode.window.showQuickPick([
+        ...(sdkTemplates.length ? [{ label: 'neura.toml projects', kind: vscode.QuickPickItemKind.Separator, templateId: '' }] : []),
+        ...sdkTemplates,
+        ...(sdkTemplates.length ? [{ label: 'Single-file programs', kind: vscode.QuickPickItemKind.Separator, templateId: '' }] : []),
         { label: 'Console application', templateId: 'application' },
         { label: 'Library', templateId: 'library' },
         { label: 'Test suite', templateId: 'tests' },
         { label: 'Application with a reusable module', templateId: 'multi' },
     ], { title: 'New Neura Project' });
-    if (!template) { return; }
+    if (!template || !template.templateId) { return; }
+    if (template.templateId.startsWith('sdk:') && newProject) {
+        const parents = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, canSelectMany: false,
+            title: 'Choose the parent directory for the new project' });
+        if (!parents?.[0]) { return; }
+        const name = await vscode.window.showInputBox({ title: 'Project name', value: 'hello-neura',
+            prompt: 'The directory and the project name: lowercase letters, digits and hyphens.',
+            validateInput: value => validProjectName(value) ? undefined : 'Use lowercase letters, digits and hyphens.' });
+        if (!name) { return; }
+        const directory = path.join(parents[0].fsPath, name);
+        const result = await newProject(directory, template.templateId.slice(4), name);
+        if (result.code !== 0) { void vscode.window.showErrorMessage(`neura new: ${result.message.trim() || `exit status ${result.code}`}`); return; }
+        await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(directory), { forceNewWindow: true });
+        return;
+    }
     const parents = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, canSelectMany: false,
         title: 'Choose the parent directory for the new project' });
     if (!parents?.[0]) { return; }

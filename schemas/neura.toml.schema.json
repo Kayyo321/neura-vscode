@@ -1,0 +1,923 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Neura project manifest",
+  "description": "The neura.toml manifest of a Neura 0.3 project.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "project",
+    "packages"
+  ],
+  "properties": {
+    "schema": {
+      "const": 1,
+      "type": "integer",
+      "description": "Manifest schema version; must be 1."
+    },
+    "project": {
+      "type": "object",
+      "description": "Project identity.",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "id",
+        "version",
+        "language"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Project name: lowercase letters, digits and hyphens.",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "id": {
+          "type": "string",
+          "description": "Lowercase reverse-domain project identifier with at least two dot-separated labels.",
+          "maxLength": 253,
+          "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$"
+        },
+        "version": {
+          "type": "string",
+          "description": "Project version of the form MAJOR.MINOR.PATCH without leading zeros.",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+        },
+        "language": {
+          "const": "0.3",
+          "type": "string",
+          "description": "Neura language version; this SDK supports \"0.3\"."
+        }
+      }
+    },
+    "packages": {
+      "type": "object",
+      "description": "Project packages keyed by package name; at least one is required.",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "description": "One project package.",
+        "additionalProperties": false,
+        "required": [
+          "root"
+        ],
+        "properties": {
+          "root": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?![A-Za-z]:)(?!/)(?!.*://)[^\\\\\\u0000]+$",
+            "description": "Package source directory, relative to the manifest."
+          },
+          "assets": {
+            "type": "array",
+            "description": "Asset paths, relative to the manifest.",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?![A-Za-z]:)(?!/)(?!.*://)[^\\\\\\u0000]+$",
+              "description": "An asset path."
+            }
+          },
+          "depends": {
+            "type": "array",
+            "description": "Names of packages or external dependencies this package depends on.",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "description": "External dependencies keyed by name; a name must not match a project package.",
+      "additionalProperties": {
+        "type": "object",
+        "description": "One external dependency: a directory or an archive, with a digest pin.",
+        "additionalProperties": false,
+        "required": [
+          "digest"
+        ],
+        "oneOf": [
+          {
+            "required": [
+              "path"
+            ]
+          },
+          {
+            "required": [
+              "archive"
+            ]
+          }
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?![A-Za-z]:)(?!/)(?!.*://)[^\\\\\\u0000]+$",
+            "description": "Dependency directory outside the project, relative to the manifest."
+          },
+          "archive": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?![A-Za-z]:)(?!/)(?!.*://)[^\\\\\\u0000]+$",
+            "description": "Dependency archive file, relative to the manifest."
+          },
+          "digest": {
+            "type": "string",
+            "description": "Digest that pins the dependency content; must not be blank.",
+            "pattern": "[^ \\t\\r\\n]"
+          }
+        }
+      }
+    },
+    "contracts": {
+      "type": "object",
+      "description": "Shared contracts settings.",
+      "additionalProperties": false,
+      "required": [
+        "manifest"
+      ],
+      "properties": {
+        "manifest": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?![A-Za-z]:)(?!/)(?!.*://)[^\\\\\\u0000]+$",
+          "description": "Contracts manifest file, relative to the manifest."
+        }
+      }
+    },
+    "targets": {
+      "type": "object",
+      "description": "Build targets keyed by target name.",
+      "additionalProperties": {
+        "type": "object",
+        "description": "One build target; its kind selects the allowed keys.",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "The target kind.",
+            "enum": [
+              "web",
+              "server",
+              "desktop"
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "web"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "type": "object",
+              "description": "A web target.",
+              "required": [
+                "kind",
+                "package",
+                "entry",
+                "capabilities"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "description": "The target kind.",
+                  "enum": [
+                    "web"
+                  ]
+                },
+                "package": {
+                  "type": "string",
+                  "description": "Name of the project package this target builds.",
+                  "minLength": 1
+                },
+                "entry": {
+                  "type": "string",
+                  "description": "Module that provides the target entry point.",
+                  "minLength": 1
+                },
+                "capabilities": {
+                  "type": "array",
+                  "description": "Capabilities this target requests.",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "ui",
+                      "http_client",
+                      "bridge"
+                    ]
+                  }
+                },
+                "styles": {
+                  "type": "array",
+                  "description": "Stylesheets, relative to the manifest.",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^(?![A-Za-z]:)(?!/)(?!.*://)[^\\\\\\u0000]+$",
+                    "description": "A stylesheet path."
+                  }
+                },
+                "routing": {
+                  "type": "string",
+                  "description": "Client routing mode.",
+                  "enum": [
+                    "hash",
+                    "history"
+                  ]
+                },
+                "origins": {
+                  "type": "object",
+                  "description": "Origins the web app may connect to or load from.",
+                  "additionalProperties": false,
+                  "properties": {
+                    "connect": {
+                      "type": "array",
+                      "description": "Allowed connect origins, each an absolute origin of scheme, host and optional port.",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9+.-]*://(\\[[0-9A-Fa-f:.]+\\]|[A-Za-z0-9.-]+)(:[0-9]{1,5})?$"
+                      }
+                    },
+                    "load": {
+                      "type": "array",
+                      "description": "Allowed load origins, each an absolute origin of scheme, host and optional port.",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9+.-]*://(\\[[0-9A-Fa-f:.]+\\]|[A-Za-z0-9.-]+)(:[0-9]{1,5})?$"
+                      }
+                    },
+                    "style": {
+                      "type": "array",
+                      "description": "Allowed style origins, each an absolute origin of scheme, host and optional port.",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9+.-]*://(\\[[0-9A-Fa-f:.]+\\]|[A-Za-z0-9.-]+)(:[0-9]{1,5})?$"
+                      }
+                    },
+                    "external": {
+                      "type": "array",
+                      "description": "Allowed external origins, each an absolute origin of scheme, host and optional port.",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9+.-]*://(\\[[0-9A-Fa-f:.]+\\]|[A-Za-z0-9.-]+)(:[0-9]{1,5})?$"
+                      }
+                    }
+                  }
+                },
+                "limits": {
+                  "type": "object",
+                  "description": "Overrides for finite limits that apply to web targets.",
+                  "properties": {
+                    "U-1": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65535,
+                      "description": "Finite limit U-1; an integer from 1 to 65535."
+                    },
+                    "U-2": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 255,
+                      "description": "Finite limit U-2; an integer from 1 to 255."
+                    },
+                    "U-3": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65535,
+                      "description": "Finite limit U-3; an integer from 1 to 65535."
+                    },
+                    "U-4": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1000000,
+                      "description": "Finite limit U-4; an integer from 1 to 1000000."
+                    },
+                    "U-5": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 4000000,
+                      "description": "Finite limit U-5; an integer from 1 to 4000000."
+                    },
+                    "U-6": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 16777216,
+                      "description": "Finite limit U-6; an integer from 1 to 16777216."
+                    },
+                    "U-7": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65536,
+                      "description": "Finite limit U-7; an integer from 1 to 65536."
+                    },
+                    "U-8": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 4096,
+                      "description": "Finite limit U-8; an integer from 1 to 4096."
+                    },
+                    "U-9": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 256,
+                      "description": "Finite limit U-9; an integer from 1 to 256."
+                    },
+                    "U-10": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1024,
+                      "description": "Finite limit U-10; an integer from 1 to 1024."
+                    },
+                    "W-1": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1073741824,
+                      "description": "Finite limit W-1; an integer from 1 to 1073741824."
+                    },
+                    "W-2": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 50,
+                      "description": "Finite limit W-2; an integer from 1 to 50."
+                    },
+                    "W-3": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 268435456,
+                      "description": "Finite limit W-3; an integer from 1 to 268435456."
+                    },
+                    "W-4": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 256,
+                      "description": "Finite limit W-4; an integer from 1 to 256."
+                    },
+                    "C-1": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 4096,
+                      "description": "Finite limit C-1; an integer from 1 to 4096."
+                    },
+                    "C-2": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 67108864,
+                      "description": "Finite limit C-2; an integer from 1 to 67108864."
+                    },
+                    "C-3": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1000000,
+                      "description": "Finite limit C-3; an integer from 1 to 1000000."
+                    },
+                    "C-4": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 128,
+                      "description": "Finite limit C-4; an integer from 1 to 128."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "server"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "type": "object",
+              "description": "A server target.",
+              "required": [
+                "kind",
+                "package",
+                "entry",
+                "capabilities"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "description": "The target kind.",
+                  "enum": [
+                    "server"
+                  ]
+                },
+                "package": {
+                  "type": "string",
+                  "description": "Name of the project package this target builds.",
+                  "minLength": 1
+                },
+                "entry": {
+                  "type": "string",
+                  "description": "Module that provides the target entry point.",
+                  "minLength": 1
+                },
+                "capabilities": {
+                  "type": "array",
+                  "description": "Capabilities this target requests.",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "http_client",
+                      "http_server",
+                      "sql",
+                      "app",
+                      "fs",
+                      "net",
+                      "env"
+                    ]
+                  }
+                },
+                "http": {
+                  "type": "object",
+                  "description": "HTTP listener settings.",
+                  "additionalProperties": false,
+                  "properties": {
+                    "listen": {
+                      "type": "string",
+                      "description": "Address for the HTTP listener."
+                    },
+                    "tls_listen": {
+                      "type": "string",
+                      "description": "Address for the TLS listener."
+                    },
+                    "admin_listen": {
+                      "type": "string",
+                      "description": "Address for the admin listener."
+                    },
+                    "trusted_proxies": {
+                      "type": "array",
+                      "description": "Addresses of trusted proxies.",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "sql": {
+                  "type": "object",
+                  "description": "SQL connection pools keyed by pool name.",
+                  "additionalProperties": {
+                    "type": "object",
+                    "description": "One SQL pool.",
+                    "additionalProperties": false,
+                    "required": [
+                      "provider"
+                    ],
+                    "properties": {
+                      "provider": {
+                        "type": "string",
+                        "description": "Name of the SQL provider this pool uses.",
+                        "minLength": 1
+                      },
+                      "migrations": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "^(?![A-Za-z]:)(?!/)(?!.*://)[^\\\\\\u0000]+$",
+                        "description": "Directory of migrations, relative to the manifest."
+                      },
+                      "migrate": {
+                        "type": "string",
+                        "description": "When migrations run: manually or when the server starts.",
+                        "enum": [
+                          "manual",
+                          "on_start"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "config": {
+                  "type": "object",
+                  "description": "Configuration exposure settings.",
+                  "additionalProperties": false,
+                  "properties": {
+                    "prefix": {
+                      "type": "string",
+                      "description": "Prefix for configuration names."
+                    },
+                    "expose": {
+                      "type": "array",
+                      "description": "Configuration names exposed to the program.",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "providers": {
+                  "type": "array",
+                  "description": "Providers the target needs.",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "limits": {
+                  "type": "object",
+                  "description": "Overrides for finite limits that apply to server targets.",
+                  "properties": {
+                    "C-1": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 4096,
+                      "description": "Finite limit C-1; an integer from 1 to 4096."
+                    },
+                    "C-2": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 67108864,
+                      "description": "Finite limit C-2; an integer from 1 to 67108864."
+                    },
+                    "C-3": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1000000,
+                      "description": "Finite limit C-3; an integer from 1 to 1000000."
+                    },
+                    "C-4": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 128,
+                      "description": "Finite limit C-4; an integer from 1 to 128."
+                    },
+                    "S-1": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1024,
+                      "description": "Finite limit S-1; an integer from 1 to 1024."
+                    },
+                    "S-2": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 64,
+                      "description": "Finite limit S-2; an integer from 1 to 64."
+                    },
+                    "S-3": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65536,
+                      "description": "Finite limit S-3; an integer from 1 to 65536."
+                    },
+                    "S-4": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1000000,
+                      "description": "Finite limit S-4; an integer from 1 to 1000000."
+                    },
+                    "S-5": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1048576,
+                      "description": "Finite limit S-5; an integer from 1 to 1048576."
+                    },
+                    "S-6": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1073741824,
+                      "description": "Finite limit S-6; an integer from 1 to 1073741824."
+                    },
+                    "S-7": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1073741824,
+                      "description": "Finite limit S-7; an integer from 1 to 1073741824."
+                    },
+                    "S-8": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 3600,
+                      "description": "Finite limit S-8; an integer from 1 to 3600."
+                    },
+                    "S-9": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1024,
+                      "description": "Finite limit S-9; an integer from 1 to 1024."
+                    },
+                    "S-10": {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": [
+                        {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 65536
+                        },
+                        {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 600
+                        }
+                      ],
+                      "description": "Finite limit S-10; a pair of integers, the first from 1 to 65536 and the second from 1 to 600."
+                    },
+                    "S-11": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1000000,
+                      "description": "Finite limit S-11; an integer from 1 to 1000000."
+                    },
+                    "S-12": {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": [
+                        {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 3600
+                        },
+                        {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 60
+                        }
+                      ],
+                      "description": "Finite limit S-12; a pair of integers, the first from 1 to 3600 and the second from 1 to 60."
+                    },
+                    "S-13": {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": [
+                        {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1048576
+                        },
+                        {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1000000
+                        }
+                      ],
+                      "description": "Finite limit S-13; a pair of integers, the first from 1 to 1048576 and the second from 1 to 1000000."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "desktop"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "type": "object",
+              "description": "A desktop target.",
+              "required": [
+                "kind",
+                "package",
+                "entry",
+                "capabilities",
+                "ui"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "description": "The target kind.",
+                  "enum": [
+                    "desktop"
+                  ]
+                },
+                "package": {
+                  "type": "string",
+                  "description": "Name of the project package this target builds.",
+                  "minLength": 1
+                },
+                "entry": {
+                  "type": "string",
+                  "description": "Module that provides the target entry point.",
+                  "minLength": 1
+                },
+                "capabilities": {
+                  "type": "array",
+                  "description": "Capabilities this target requests.",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "http_client",
+                      "desktop",
+                      "sql",
+                      "app",
+                      "fs",
+                      "net",
+                      "env"
+                    ]
+                  }
+                },
+                "ui": {
+                  "type": "string",
+                  "description": "Name of the web target that provides the user interface.",
+                  "minLength": 1
+                },
+                "bridge": {
+                  "type": "object",
+                  "description": "Bridge settings.",
+                  "additionalProperties": false,
+                  "properties": {
+                    "operations": {
+                      "type": "array",
+                      "description": "Operations the UI may call across the bridge.",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "origins": {
+                  "type": "object",
+                  "description": "Origins the desktop UI may connect to or load from.",
+                  "additionalProperties": false,
+                  "properties": {
+                    "connect": {
+                      "type": "array",
+                      "description": "Allowed connect origins, each an absolute origin of scheme, host and optional port.",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9+.-]*://(\\[[0-9A-Fa-f:.]+\\]|[A-Za-z0-9.-]+)(:[0-9]{1,5})?$"
+                      }
+                    },
+                    "load": {
+                      "type": "array",
+                      "description": "Allowed load origins, each an absolute origin of scheme, host and optional port.",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9+.-]*://(\\[[0-9A-Fa-f:.]+\\]|[A-Za-z0-9.-]+)(:[0-9]{1,5})?$"
+                      }
+                    },
+                    "style": {
+                      "type": "array",
+                      "description": "Allowed style origins, each an absolute origin of scheme, host and optional port.",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9+.-]*://(\\[[0-9A-Fa-f:.]+\\]|[A-Za-z0-9.-]+)(:[0-9]{1,5})?$"
+                      }
+                    },
+                    "external": {
+                      "type": "array",
+                      "description": "Allowed external origins, each an absolute origin of scheme, host and optional port.",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9+.-]*://(\\[[0-9A-Fa-f:.]+\\]|[A-Za-z0-9.-]+)(:[0-9]{1,5})?$"
+                      }
+                    }
+                  }
+                },
+                "packaging": {
+                  "type": "object",
+                  "description": "Desktop packaging settings.",
+                  "additionalProperties": false,
+                  "properties": {
+                    "icon": {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "^(?![A-Za-z]:)(?!/)(?!.*://)[^\\\\\\u0000]+$",
+                      "description": "Icon file, relative to the manifest."
+                    },
+                    "formats": {
+                      "type": "array",
+                      "description": "Package formats to produce.",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "sign_identity": {
+                      "type": "string",
+                      "description": "Identity used to sign the package."
+                    }
+                  }
+                },
+                "sql": {
+                  "type": "object",
+                  "description": "SQL connection pools keyed by pool name.",
+                  "additionalProperties": {
+                    "type": "object",
+                    "description": "One SQL pool.",
+                    "additionalProperties": false,
+                    "required": [
+                      "provider"
+                    ],
+                    "properties": {
+                      "provider": {
+                        "type": "string",
+                        "description": "Name of the SQL provider this pool uses.",
+                        "minLength": 1
+                      },
+                      "migrations": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "^(?![A-Za-z]:)(?!/)(?!.*://)[^\\\\\\u0000]+$",
+                        "description": "Directory of migrations, relative to the manifest."
+                      },
+                      "migrate": {
+                        "type": "string",
+                        "description": "When migrations run: manually or when the server starts.",
+                        "enum": [
+                          "manual",
+                          "on_start"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "providers": {
+                  "type": "array",
+                  "description": "Providers the target needs.",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "limits": {
+                  "type": "object",
+                  "description": "Overrides for finite limits that apply to desktop targets.",
+                  "properties": {
+                    "C-1": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 4096,
+                      "description": "Finite limit C-1; an integer from 1 to 4096."
+                    },
+                    "C-2": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 67108864,
+                      "description": "Finite limit C-2; an integer from 1 to 67108864."
+                    },
+                    "C-3": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1000000,
+                      "description": "Finite limit C-3; an integer from 1 to 1000000."
+                    },
+                    "C-4": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 128,
+                      "description": "Finite limit C-4; an integer from 1 to 128."
+                    },
+                    "D-1": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 64,
+                      "description": "Finite limit D-1; an integer from 1 to 64."
+                    },
+                    "D-2": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1024,
+                      "description": "Finite limit D-2; an integer from 1 to 1024."
+                    },
+                    "D-3": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 67108864,
+                      "description": "Finite limit D-3; an integer from 1 to 67108864."
+                    },
+                    "D-4": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 3600,
+                      "description": "Finite limit D-4; an integer from 1 to 3600."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
