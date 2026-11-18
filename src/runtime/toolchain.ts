@@ -39,7 +39,7 @@ export class Toolchains implements vscode.Disposable {
         this.status.text = !tool ? '$(warning) Install Neura' : runtimeOnly ? `$(warning) Neura ${tool.version} (no SDK)` : `$(check) Neura ${tool.version}`;
         this.status.command = tool ? 'neura.doctor' : 'neura.install';
         this.status.tooltip = tool ? `${tool.description}\n${tool.executable}\nHost: ${vscode.env.remoteName ?? process.platform}` +
-            (runtimeOnly ? `\n${runtimeOnlyAdvice}` : '')
+            (runtimeOnly ? `\n${runtimeOnlyAdvice(tool)}` : '')
             : 'Install or select a Neura toolchain on this workspace host.';
         this.status.show();
     }
@@ -137,15 +137,21 @@ export class Toolchains implements vscode.Disposable {
 }
 
 /** The editor tools (language server, formatter, debugger, check, build and test) belong to the SDK. A 0.3
- * runtime-only installation answers `capabilities --json` with every feature false. */
+ * installation without it (the Neura-runtime product: core and service) reports those features false; its core
+ * still has `neura-inspect`, so image inspection stays true. */
 export function isRuntimeOnly(tool: Toolchain): boolean {
     const features = tool.capabilities.features;
     if (!features || typeof features !== 'object' || Array.isArray(features) || !('service' in tool.capabilities)) { return false; }
-    const values = Object.values(features as Record<string, unknown>);
-    return values.length > 0 && values.every(value => value === false);
+    const values = features as Record<string, unknown>;
+    return ['lsp', 'formatter', 'debugger', 'testDiscovery'].every(name => values[name] === false);
 }
 
-export const runtimeOnlyAdvice = 'This is a Neura runtime installation without the SDK. Run "neura update --components sdk" (or reinstall with the SDK) for language services, build, check, tests and debugging.';
+/** `neura update --components` sets the whole component set, so keep the service when it is installed. */
+export function runtimeOnlyAdvice(tool: Toolchain): string {
+    const service = tool.capabilities.service as { installed?: unknown } | undefined;
+    const set = service?.installed === true ? 'sdk,service' : 'sdk';
+    return `This Neura installation has no SDK. Run "neura update --components ${set}" to add it for language services, build, check, tests and debugging.`;
+}
 
 export const shellQuote = (value: string): string => `'${value.replace(/'/g, `'"'"'`)}'`;
 

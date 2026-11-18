@@ -23,7 +23,7 @@ require.extensions['.ts'] = (module, filename) => {
 const config = require('./configuration.ts');
 const diagnostics = require('./diagnostics.ts');
 const { runProcess } = require('./process.ts');
-const { shellQuote, resolveExecutable, isRuntimeOnly } = require('./toolchain.ts');
+const { shellQuote, resolveExecutable, isRuntimeOnly, runtimeOnlyAdvice } = require('./toolchain.ts');
 Module._load = originalLoad;
 if (originalTs) { require.extensions['.ts'] = originalTs; } else { delete require.extensions['.ts']; }
 
@@ -87,7 +87,13 @@ test('an installed link is kept rather than pinned to the generation it points a
 test('a 0.3 runtime-only installation is told apart from an SDK and from a 0.2 toolchain', () => {
     const features = value => ({ coverage: value, debugger: value, documentation: value, formatter: value, imageInspection: value, lsp: value, testCoverage: value, testDiscovery: value, testFilter: value, testReporter: value });
     const tool = capabilities => ({ executable: 'neura', version: '0.3.0', description: '', capabilities });
-    assert.equal(isRuntimeOnly(tool({ features: features(false), schemaVersion: 1, service: { installed: true, state: 'ready' }, version: '0.3.0' })), true);
+    // The capability object of a 0.3.0 core-only bin directory: neura-inspect is a core tool.
+    const core = { features: { ...features(false), imageInspection: true }, schemaVersion: 1, service: { installed: false, state: 'missing' }, version: '0.3.0' };
+    assert.equal(isRuntimeOnly(tool(core)), true);
+    assert.match(runtimeOnlyAdvice(tool(core)), /--components sdk"/);
+    const runtime = { ...core, service: { installed: true, protocol: '1.0', state: 'ready' } };
+    assert.equal(isRuntimeOnly(tool(runtime)), true);
+    assert.match(runtimeOnlyAdvice(tool(runtime)), /--components sdk,service"/, 'adding the SDK keeps the service');
     assert.equal(isRuntimeOnly(tool({ features: features(true), schemaVersion: 1, service: { installed: false, state: 'missing' }, version: '0.3.0' })), false);
     assert.equal(isRuntimeOnly(tool({ features: features(false), schemaVersion: 1, version: '0.2.1' })), false, 'a 0.2 object has no service member');
     assert.equal(isRuntimeOnly(tool({})), false, 'releases without a capability endpoint');

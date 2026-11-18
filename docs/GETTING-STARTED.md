@@ -18,7 +18,7 @@ Run **Neura: Install Toolchain** and leave the version empty for the latest rele
 curl --proto '=https' --tlsv1.2 -fsSL https://github.com/Kayyo321/neura/releases/latest/download/install.sh | sh
 ```
 
-The installer installs **Neura-sdk**, which is what the editor needs. Neura 0.3.0 also ships **Neura-runtime**, which only runs images. If the status bar shows **Neura 0.3.0 (no SDK)**, the selected installation is runtime-only: run `neura update --components sdk` (or reinstall with the command above) and then **Neura: Refresh Toolchain**.
+The installer installs **Neura-sdk**, which is what the editor needs. Neura 0.3.0 also ships **Neura-runtime**, which only runs images. If the status bar shows **Neura 0.3.0 (no SDK)**, the selected installation is runtime-only: run `neura update --components sdk,service` (or `--components sdk` when it has no service), then run **Neura: Refresh Toolchain**.
 
 The extension finds `neura` on `PATH`, in `~/.local/bin`, and in the install root (`~/.local/share/neura/current/bin`). It keeps the installed link rather than the generation it points at, so `neura update` moves the editor to the new generation at the next toolchain refresh. **Neura: Select Toolchain** picks another executable, such as a build tree's `bin/neura`.
 

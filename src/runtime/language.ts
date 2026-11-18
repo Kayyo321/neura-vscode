@@ -49,7 +49,7 @@ export class LanguageServices implements vscode.Disposable {
         if (!tool) { this.output.appendLine(`Language server unavailable for ${folder.name}: select or install a toolchain. Saved-file diagnostics remain available when a toolchain is selected.`); return false; }
         // Tooling support is negotiated. Older releases retain the saved-file CLI fallback.
         if (isRuntimeOnly(tool)) {
-            this.output.appendLine(`Language server unavailable for ${folder.name}: ${runtimeOnlyAdvice}`);
+            this.output.appendLine(`Language server unavailable for ${folder.name}: ${runtimeOnlyAdvice(tool)}`);
             return false;
         }
         if (!supportsCapability(tool, 'lsp') && !supportsCapability(tool, 'languageServer')) {
