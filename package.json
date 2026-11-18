@@ -643,7 +643,7 @@
         "neura.toolchain.stdlibPath": {
           "type": "string",
           "default": "",
-          "description": "Optional standard-library source directory for language-server analysis on the workspace host; normally detected from the executable. Build, run and test commands use the selected toolchain’s installed standard library.",
+          "description": "Optional standard-library source directory for language-server analysis on the workspace host; normally detected from the executable. Build, run and test commands use the selected toolchain\u2019s installed standard library.",
           "scope": "resource"
         },
         "neura.editing.autoSemicolon": {
