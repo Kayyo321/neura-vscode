@@ -130,6 +130,183 @@ export async function run(): Promise<void> {
       }
       assert.ok(discoveredCount >= 1, 'the actual host discovers an eligible test through its file-search exclusions');
     } finally { await fs.rm(directory, { recursive: true, force: true }); }
+    await language030(workspace.uri.fsPath, pause);
+    await project030(executable, workspace.uri.fsPath, pause);
+    await debugger030(workspace.uri.fsPath, pause);
   }
   console.log('Neura Extension Development Host integration passed.');
+}
+
+// Neura 0.3.0: semantic tokens with the server's legend, and diagnostics, hover, completion and
+// formatting over the 0.3.0 forms.
+async function language030(root: string, pause: (milliseconds: number) => Promise<void>): Promise<void> {
+  const directory = await fs.mkdtemp(path.join(root, 'neura-030-language-'));
+  const file = vscode.Uri.file(path.join(directory, 'forms.nra'));
+  const source = [
+    'let console = import:Std.Io.Console;',
+    'let User = record (id: int64, name: string);',
+    'let squares = iterator(count: int32) -> int32 {',
+    '    for (let index in 0 ..= count) {',
+    '        yield index * index;',
+    '    }',
+    '};',
+    'let describe = func(value: any) -> string {',
+    '    return match.is (value) {',
+    '        text: string => "text " .. text,',
+    '        _ => "other",',
+    '    };',
+    '};',
+    'let report = func(user: User, total: int32 = 0) -> string {',
+    '    let copy = new with(user) { name: "Grace" };',
+    '    return $"{copy.name}: {total:>4} {nameof(User)}";',
+    '};',
+    '',
+  ].join('\n');
+  await fs.writeFile(file.fsPath, source);
+  try {
+    const doc = await vscode.workspace.openTextDocument(file); await vscode.window.showTextDocument(doc);
+    let errors: vscode.Diagnostic[] = [];
+    let hover: vscode.Hover[] = [];
+    for (let attempt = 0; attempt < 120; attempt++) {
+      hover = await vscode.commands.executeCommand<vscode.Hover[]>('vscode.executeHoverProvider', file, new vscode.Position(1, 5)) ?? [];
+      if (hover.length) break;
+      await pause(250);
+    }
+    const hoverText = hover.flatMap(item => item.contents.map(content => typeof content === 'string' ? content : content.value)).join('\n');
+    assert.ok(hoverText.includes('User'), `record hover: ${hoverText}`);
+    errors = vscode.languages.getDiagnostics(file).filter(item => item.severity === vscode.DiagnosticSeverity.Error);
+    assert.deepEqual(errors.map(item => item.message), [], '0.3.0 forms check without errors');
+    const legend = await vscode.commands.executeCommand<vscode.SemanticTokensLegend>('vscode.provideDocumentSemanticTokensLegend', file);
+    assert.ok(legend, 'the server advertises a semantic token legend');
+    const standard = new Set(['namespace', 'type', 'class', 'enum', 'interface', 'struct', 'typeParameter', 'parameter', 'variable', 'property', 'enumMember', 'event', 'function', 'method', 'macro', 'keyword', 'modifier', 'comment', 'string', 'number', 'regexp', 'operator', 'decorator', 'label']);
+    const standardModifiers = new Set(['declaration', 'definition', 'readonly', 'static', 'deprecated', 'abstract', 'async', 'modification', 'documentation', 'defaultLibrary']);
+    const contributes = vscode.extensions.getExtension('Kayyo321.neura-vscode')!.packageJSON.contributes;
+    const types = new Set<string>(contributes.semanticTokenTypes.map((item: { id: string }) => item.id));
+    const modifiers = new Set<string>(contributes.semanticTokenModifiers.map((item: { id: string }) => item.id));
+    for (const type of legend.tokenTypes) assert.ok(standard.has(type) || types.has(type), `server token type ${type} is contributed`);
+    for (const modifier of legend.tokenModifiers) assert.ok(standardModifiers.has(modifier) || modifiers.has(modifier), `server token modifier ${modifier} is contributed`);
+    for (const type of types) assert.ok(legend.tokenTypes.includes(type), `contributed token type ${type} is in the server legend`);
+    const tokens = await vscode.commands.executeCommand<vscode.SemanticTokens>('vscode.provideDocumentSemanticTokens', file);
+    assert.ok(tokens && tokens.data.length > 0, 'semantic tokens for 0.3.0 forms');
+    const setText = async (text: string): Promise<void> => {
+      const edit = new vscode.WorkspaceEdit();
+      edit.replace(file, new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length)), text);
+      assert.ok(await vscode.workspace.applyEdit(edit));
+    };
+    const offset = source.indexOf('name: "Grace"');
+    await setText(source.replace('name: "Grace"', ''));
+    const completion = await vscode.commands.executeCommand<vscode.CompletionList>('vscode.executeCompletionItemProvider', file, doc.positionAt(offset));
+    const labels = (completion?.items ?? []).map(item => typeof item.label === 'string' ? item.label : item.label.label);
+    assert.ok(labels.some(label => label.startsWith('name')), `copy completion offers record fields: ${labels.slice(0, 20).join(', ')}`);
+    await setText(source);
+    const format = async (): Promise<vscode.TextEdit[]> =>
+      await vscode.commands.executeCommand<vscode.TextEdit[]>('vscode.executeFormatDocumentProvider', file, { tabSize: 4, insertSpaces: true }) ?? [];
+    assert.equal((await format()).length, 0, 'formatted 0.3.0 source is stable');
+    await setText(source.replace('let User = record (id: int64, name: string);', 'let User=record(id:int64,name:string);'));
+    assert.ok((await format()).length > 0, 'the formatter lays out a record declaration');
+    await setText(source);
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+  } finally { await fs.rm(directory, { recursive: true, force: true }); }
+}
+
+// Neura 0.3.0 projects: a project from `neura new`, its tasks, and a project build through the task.
+async function project030(executable: string, root: string, pause: (milliseconds: number) => Promise<void>): Promise<void> {
+  const parent = await fs.mkdtemp(path.join(root, 'neura-030-project-'));
+  const directory = path.join(parent, 'probe');
+  try {
+    const { execFileSync } = await import('node:child_process');
+    execFileSync(executable, ['new', directory, '--template', 'web'], { env: { ...process.env, NEURA_NO_UPDATE_CHECK: '1' } });
+    const manifest = path.join(directory, 'neura.toml');
+    let tasks: vscode.Task[] = [];
+    let build: vscode.Task | undefined;
+    for (let attempt = 0; attempt < 40 && !build; attempt++) {
+      tasks = await vscode.tasks.fetchTasks({ type: 'neura-project' });
+      build = tasks.find(task => task.definition.action === 'build' && task.definition.target === 'web' && String(task.definition.project ?? '').endsWith('probe/neura.toml'));
+      if (!build) await pause(100);
+    }
+    assert.ok(build, `project build task: ${tasks.map(task => task.name).join(', ')}`);
+    assert.ok(tasks.some(task => task.definition.action === 'dev' && task.definition.target === 'web'), 'project dev task');
+    assert.ok(!tasks.some(task => task.definition.action === 'package' && task.definition.target === 'web'), 'web targets are not packaged');
+    const execution = build.execution as vscode.ProcessExecution;
+    assert.deepEqual(execution.args, ['build', '--project', manifest, '--target', 'web']);
+    let ended: vscode.Disposable | undefined;
+    const done = new Promise<number | undefined>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('The project build task did not finish.')), 120000);
+      ended = vscode.tasks.onDidEndTaskProcess(event => {
+        if (event.execution.task.definition.type === 'neura-project') { clearTimeout(timer); resolve(event.exitCode); }
+      });
+    });
+    await vscode.tasks.executeTask(build);
+    try { assert.equal(await done, 0, 'neura build --target web through the task'); } finally { ended?.dispose(); }
+    await fs.access(path.join(directory, 'dist', 'web', 'bundle.json'));
+  } finally { await fs.rm(parent, { recursive: true, force: true }); }
+}
+
+// `neura debug --stdio` launched by the extension stops at a source breakpoint and reports the frame.
+async function debugger030(root: string, pause: (milliseconds: number) => Promise<void>): Promise<void> {
+  const directory = await fs.mkdtemp(path.join(root, 'neura-030-debug-'));
+  const file = path.join(directory, 'app.nra');
+  await fs.writeFile(file, [
+    'let console = import:Std.Io.Console;',
+    'let program = import:Std.Program;',
+    'let User = record (id: int64, name: string);',
+    'let App = module:program.Entry (',
+    '    export let.override main = func(args: string[]) -> program.ExitCode {',
+    '        let user = new User(7, "Ada");',
+    '        let total = 0;',
+    '        for (let index in 0 ..= 3) {',
+    '            total += index;',
+    '        }',
+    '        console.print_line($"{user.name} {total}");',
+    '        return program.ExitCode.Ok;',
+    '    };',
+    ');',
+    '',
+  ].join('\n'));
+  const events: string[] = [];
+  let stopped: { reason?: string } | undefined;
+  const stops: { reason?: string; description?: string; text?: string }[] = [];
+  const tracker = vscode.debug.registerDebugAdapterTrackerFactory('neura', { createDebugAdapterTracker: () => ({
+    onDidSendMessage: (message: { type?: string; event?: string; body?: { reason?: string } }) => {
+      if (message.type === 'event' && message.event) {
+        events.push(message.event);
+        if (message.event === 'stopped') { stopped ??= message.body; stops.push(message.body ?? {}); }
+      }
+    },
+  }) });
+  const breakpoint = new vscode.SourceBreakpoint(new vscode.Location(vscode.Uri.file(file), new vscode.Position(10, 8)));
+  vscode.debug.addBreakpoints([breakpoint]);
+  try {
+    const folder = vscode.workspace.workspaceFolders![0]!;
+    assert.ok(await vscode.debug.startDebugging(folder, { type: 'neura', request: 'launch', name: 'Debug 0.3.0', program: file, cwd: directory, stopOnEntry: false }), 'debug session starts');
+    for (let attempt = 0; attempt < 200 && !stopped; attempt++) await pause(100);
+    assert.equal(stopped?.reason, 'breakpoint', `stopped at the breakpoint (events: ${events.join(', ')})`);
+    const session = vscode.debug.activeDebugSession; assert.ok(session);
+    const threads = await session.customRequest('threads') as { threads: { id: number }[] };
+    const trace = await session.customRequest('stackTrace', { threadId: threads.threads[0]!.id }) as { stackFrames: { line: number; source?: { path?: string } }[] };
+    assert.equal(trace.stackFrames[0]?.line, 11, 'the top frame is the breakpoint line');
+    const scopes = await session.customRequest('scopes', { frameId: (trace.stackFrames[0] as unknown as { id: number }).id }) as { scopes: { variablesReference: number }[] };
+    const variables = await session.customRequest('variables', { variablesReference: scopes.scopes[0]!.variablesReference }) as { variables: { name: string; value: string }[] };
+    assert.ok(variables.variables.some(variable => variable.name === 'total' && variable.value === '6'), `frame locals: ${JSON.stringify(variables.variables)}`);
+    const ended = new Promise<void>(resolve => { const listener = vscode.debug.onDidTerminateDebugSession(() => { listener.dispose(); resolve(); }); });
+    const before = stops.length;
+    await session.customRequest('next', { threadId: threads.threads[0]!.id });
+    for (let attempt = 0; attempt < 100 && stops.length === before; attempt++) await pause(100);
+    assert.ok(['step', 'breakpoint'].includes(stops[before]?.reason ?? ''), `a step stops again: ${JSON.stringify(stops)}`);
+    let finished = false; void ended.then(() => { finished = true; });
+    for (let resumes = 0; resumes < 5 && !finished && !events.includes('terminated'); resumes++) {
+      const count = stops.length;
+      try { await session.customRequest('continue', { threadId: threads.threads[0]!.id }); }
+      catch (error) { if (finished || events.includes('terminated') || events.includes('exited')) break; throw error; }
+      for (let attempt = 0; attempt < 100 && stops.length === count && !finished && !events.includes('terminated'); attempt++) await pause(100);
+    }
+    assert.ok(finished || events.includes('terminated') || events.includes('exited'),
+      `the program ran to completion (events: ${events.join(', ')}; stops: ${JSON.stringify(stops)})`);
+  } finally {
+    vscode.debug.removeBreakpoints([breakpoint]); tracker.dispose();
+    console.log(`Neura debug events: ${events.join(', ')}; stops: ${JSON.stringify(stops)}`);
+    // A session that is already ending refuses a second stop with Canceled.
+    if (vscode.debug.activeDebugSession) await Promise.resolve(vscode.debug.stopDebugging()).catch(() => undefined);
+    await fs.rm(directory, { recursive: true, force: true });
+  }
 }
