@@ -23,7 +23,7 @@ require.extensions['.ts'] = (module, filename) => {
 const config = require('./configuration.ts');
 const diagnostics = require('./diagnostics.ts');
 const { runProcess } = require('./process.ts');
-const { shellQuote, resolveExecutable } = require('./toolchain.ts');
+const { shellQuote, resolveExecutable, isRuntimeOnly } = require('./toolchain.ts');
 Module._load = originalLoad;
 if (originalTs) { require.extensions['.ts'] = originalTs; } else { delete require.extensions['.ts']; }
 
@@ -71,8 +71,26 @@ test('POSIX installer quoting does not evaluate shell syntax', () => {
 });
 
 test('toolchain command resolves to an absolute executable for stdlib discovery', async () => {
-    assert.equal(await resolveExecutable(process.execPath), fs.realpathSync(process.execPath));
+    assert.equal(await resolveExecutable(process.execPath), process.execPath);
     assert.equal(await resolveExecutable('/does/not/exist/neura'), undefined);
+});
+
+test('an installed link is kept rather than pinned to the generation it points at', { skip: process.platform === 'win32' }, async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'neura-link-'));
+    try {
+        const link = path.join(directory, 'neura');
+        fs.symlinkSync(process.execPath, link);
+        assert.equal(await resolveExecutable(link), link);
+    } finally { fs.rmSync(directory, { recursive: true, force: true }); }
+});
+
+test('a 0.3 runtime-only installation is told apart from an SDK and from a 0.2 toolchain', () => {
+    const features = value => ({ coverage: value, debugger: value, documentation: value, formatter: value, imageInspection: value, lsp: value, testCoverage: value, testDiscovery: value, testFilter: value, testReporter: value });
+    const tool = capabilities => ({ executable: 'neura', version: '0.3.0', description: '', capabilities });
+    assert.equal(isRuntimeOnly(tool({ features: features(false), schemaVersion: 1, service: { installed: true, state: 'ready' }, version: '0.3.0' })), true);
+    assert.equal(isRuntimeOnly(tool({ features: features(true), schemaVersion: 1, service: { installed: false, state: 'missing' }, version: '0.3.0' })), false);
+    assert.equal(isRuntimeOnly(tool({ features: features(false), schemaVersion: 1, version: '0.2.1' })), false, 'a 0.2 object has no service member');
+    assert.equal(isRuntimeOnly(tool({})), false, 'releases without a capability endpoint');
 });
 
 test('managed process passes arguments literally and captures exit status', async () => {

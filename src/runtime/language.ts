@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { CloseAction, ErrorAction, LanguageClient, LanguageClientOptions, ServerOptions, State } from 'vscode-languageclient/node';
 import { configuration, resolvePath, toolEnvironment } from './configuration';
-import { Toolchain, Toolchains } from './toolchain';
+import { isRuntimeOnly, runtimeOnlyAdvice, Toolchain, Toolchains } from './toolchain';
 
 export function supportsCapability(tool: Toolchain, name: string): boolean {
     const capabilities = tool.capabilities;
@@ -48,6 +48,10 @@ export class LanguageServices implements vscode.Disposable {
         const tool = await this.tools.discover(folder);
         if (!tool) { this.output.appendLine(`Language server unavailable for ${folder.name}: select or install a toolchain. Saved-file diagnostics remain available when a toolchain is selected.`); return false; }
         // Tooling support is negotiated. Older releases retain the saved-file CLI fallback.
+        if (isRuntimeOnly(tool)) {
+            this.output.appendLine(`Language server unavailable for ${folder.name}: ${runtimeOnlyAdvice}`);
+            return false;
+        }
         if (!supportsCapability(tool, 'lsp') && !supportsCapability(tool, 'languageServer')) {
             this.output.appendLine(`Neura ${tool.version} does not advertise language-server support for ${folder.name}; using saved-file CLI diagnostics.`);
             return false;

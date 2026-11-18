@@ -35,9 +35,11 @@ export class Toolchains implements vscode.Disposable {
         const hasNeura = vscode.window.activeTextEditor?.document.languageId === 'neura' || !!folder;
         if (!hasNeura) { this.status.hide(); return; }
         const tool = await this.discover(folder);
-        this.status.text = tool ? `$(check) Neura ${tool.version}` : '$(warning) Install Neura';
+        const runtimeOnly = tool && isRuntimeOnly(tool);
+        this.status.text = !tool ? '$(warning) Install Neura' : runtimeOnly ? `$(warning) Neura ${tool.version} (no SDK)` : `$(check) Neura ${tool.version}`;
         this.status.command = tool ? 'neura.doctor' : 'neura.install';
-        this.status.tooltip = tool ? `${tool.description}\n${tool.executable}\nHost: ${vscode.env.remoteName ?? process.platform}`
+        this.status.tooltip = tool ? `${tool.description}\n${tool.executable}\nHost: ${vscode.env.remoteName ?? process.platform}` +
+            (runtimeOnly ? `\n${runtimeOnlyAdvice}` : '')
             : 'Install or select a Neura toolchain on this workspace host.';
         this.status.show();
     }
@@ -45,9 +47,11 @@ export class Toolchains implements vscode.Disposable {
         if (!vscode.workspace.isTrusted) { return undefined; }
         if (process.platform === 'win32' && !vscode.env.remoteName) { return undefined; }
         const configured = configuration(folder).get<string>('toolchain.path', '').trim();
+        const installRoot = path.join(process.env.XDG_DATA_HOME ?? path.join(os.homedir(), '.local', 'share'), 'neura');
+        // 0.3 installations link every tool from the bin directory to <root>/current/bin; 0.2 used <root>/bin.
         const candidates = configured ? [folder ? resolvePath(configured, folder) : configured] : [
             'neura', path.join(os.homedir(), '.local', 'bin', 'neura'),
-            path.join(process.env.XDG_DATA_HOME ?? path.join(os.homedir(), '.local', 'share'), 'neura', 'bin', 'neura'),
+            path.join(installRoot, 'current', 'bin', 'neura'), path.join(installRoot, 'bin', 'neura'),
         ];
         for (const candidate of [...new Set(candidates)]) {
             try {
@@ -99,7 +103,7 @@ export class Toolchains implements vscode.Disposable {
         if (process.platform === 'win32' && !vscode.env.remoteName) { await this.reopenInWsl(); return; }
         const version = await vscode.window.showInputBox({ title: 'Install Neura', prompt:
             'Release version (leave empty for the latest stable release). Installs under your home directory without sudo.',
-            value: '', validateInput: value => !value || /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(value) ? undefined : 'Use a version such as 0.2.0 or 0.2.1-rc.1.' });
+            value: '', validateInput: value => !value || /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(value) ? undefined : 'Use a version such as 0.3.0 or 0.3.1-rc.1.' });
         if (version === undefined) { return; }
         const url = version ? `https://github.com/Kayyo321/neura/releases/download/v${version}/install.sh`
             : 'https://github.com/Kayyo321/neura/releases/latest/download/install.sh';
@@ -132,6 +136,17 @@ export class Toolchains implements vscode.Disposable {
     }
 }
 
+/** The editor tools (language server, formatter, debugger, check, build and test) belong to the SDK. A 0.3
+ * runtime-only installation answers `capabilities --json` with every feature false. */
+export function isRuntimeOnly(tool: Toolchain): boolean {
+    const features = tool.capabilities.features;
+    if (!features || typeof features !== 'object' || Array.isArray(features) || !('service' in tool.capabilities)) { return false; }
+    const values = Object.values(features as Record<string, unknown>);
+    return values.length > 0 && values.every(value => value === false);
+}
+
+export const runtimeOnlyAdvice = 'This is a Neura runtime installation without the SDK. Run "neura update --components sdk" (or reinstall with the SDK) for language services, build, check, tests and debugging.';
+
 export const shellQuote = (value: string): string => `'${value.replace(/'/g, `'"'"'`)}'`;
 
 export async function executableExists(executable: string): Promise<boolean> {
@@ -146,7 +161,9 @@ export async function resolveExecutable(candidate: string, cwd = process.cwd()):
         try {
             await fs.access(file, constants.X_OK);
             const stat = await fs.stat(file);
-            if (stat.isFile()) { return await fs.realpath(file); }
+            // Keep the installed link rather than its target: a 0.3 update moves the link to a new
+            // generation and may later remove the generation that a resolved path would pin.
+            if (stat.isFile()) { return file; }
         } catch { /* Continue to the next PATH location. */ }
     }
     return undefined;
