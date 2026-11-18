@@ -2,15 +2,15 @@
 
 The Neura development environment: install the toolchain, write and navigate `.nra` programs, build and run applications, execute individual tests, and debug the Neura Virtual Machine.
 
-This is a research release candidate. The companion toolchain is **Neura 0.2.1-rc.2**. It does not replace the stable Neura release. Follow the [RC2 installation and feature walkthrough](docs/TRY-RC2.md) to try the extension.
+Version 0.3.0 of the extension works with the **Neura 0.3.0 SDK**: its language, its language server and debugger, and its `neura.toml` projects. Follow [Get started with Neura 0.3.0](docs/GETTING-STARTED.md) to install both and try them.
 
 ## Install
 
-Install the VSIX from this repository's GitHub prerelease with **Extensions → Install from VSIX**. Open the Neura walkthrough with **Neura: Get Started**.
+Install the extension, or its VSIX from this repository's releases with **Extensions → Install from VSIX**. Open the Neura walkthrough with **Neura: Get Started**.
 
 Choose **Neura: Install Toolchain** or **Neura: Select Toolchain**. Installation uses the official installer in a visible terminal and requires an explicit action. The extension never changes your theme or downloads a compiler merely because a source file opens.
 
-The complete language services, testing, and debugger require the tooling candidate. Older toolchains retain syntax, themes, build/run, and saved-file diagnostics. The extension checks actual capabilities instead of assuming that a version number implies a feature.
+The language services, testing, and debugger come from the **Neura-sdk** product. A **Neura-runtime** installation, which only runs images, is reported in the status bar as having no SDK, with the command that adds it. Older toolchains retain syntax, themes, build/run, and saved-file diagnostics. The extension checks actual capabilities instead of assuming that a version number implies a feature.
 
 Supported workspace hosts are Linux x86-64/arm64 with glibc 2.39 or newer, macOS 15 or newer on Intel/Apple silicon, and Windows through Remote WSL2 with a compatible Linux distribution. SSH and containers run tools on the remote host. Native Windows execution is not supported.
 
@@ -29,9 +29,9 @@ Syntax and themes remain usable without Neura installed. Execution and workspace
 
 ## Projects and targets
 
-**Neura: Create Project** creates a console, library, test, or multi-module starter. No package manager or language-level manifest is invented.
+Neura 0.3.0 projects are described by `neura.toml` and locked by `neura.lock`. **Neura: Create Project** runs `neura new` with the SDK's `fullstack`, `web`, `server` and `desktop` templates. The **Projects and Targets** view lists each manifest's targets with **Build** (`neura build --project <manifest> --target <name>`), **Develop** (`neura dev`) and, for server and desktop targets, **Package** (`neura package`) actions; they are also `neura-project` tasks for `tasks.json`. Diagnostics from project builds appear in Problems. With Even Better TOML installed, `neura.toml` is validated against the manifest schema. See [Get started](docs/GETTING-STARTED.md#3-create-a-project).
 
-Configure editor targets in `.vscode/settings.json`:
+For single-file programs, **Create Project** also offers a console, library, test, or multi-module starter, and editor targets are configured in `.vscode/settings.json`:
 
 ```json
 {
@@ -57,7 +57,7 @@ Build-on-save, restart-on-change, test watch, schedule exploration, and virtual 
 
 Choose **Neura Dark**, **Neura Light**, or their **Vivid** variants. Pink/blue accents follow the Neura website with brighter source colors for comfortable contrast. Themes distinguish generics, parameters, mutable/assign-once bindings, classes/interfaces/enums, tags, constructors/destructors, storage, accessors, and documentation. Every semantic category is customizable and falls back to standard VS Code token types.
 
-See [the semantic token gallery](examples/token-gallery.nra) and [highlighting guide](docs/highlighting.md). Normal source-text colors are tested for 4.5:1 contrast. Existing themes and fonts remain selected unless you change them.
+The grammar covers the Neura 0.3.0 language, including records, generators, `match.is`, optional access, interpolated strings, tag groups, and `html`/`css` forms with embedded HTML and CSS. See [the semantic token gallery](examples/token-gallery.nra) and [highlighting guide](docs/highlighting.md). Normal source-text colors are tested for 4.5:1 contrast. Existing themes and fonts remain selected unless you change them.
 
 ## Tooling commands and limitations
 
@@ -76,6 +76,6 @@ npm test
 npm run package
 ```
 
-Press F5 to start an Extension Development Host. `npm run test:integration` runs an actual VS Code host; Linux CI uses Xvfb. Set `NEURA_TEST_EXECUTABLE` to the companion compiler when running real-toolchain editor checks.
+Press F5 to start an Extension Development Host. `npm run test:integration` runs an actual VS Code host; Linux CI uses Xvfb. Set `NEURA_TEST_EXECUTABLE` to a Neura 0.3.0 SDK's `neura` when running real-toolchain editor checks. `npm run smoke:grammar -- <directory>...` tokenizes every `.nra` file under the given directories and reports grammar states that leak past a line or a declaration.
 
 Licensed under Apache-2.0, matching Neura.

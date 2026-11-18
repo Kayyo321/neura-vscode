@@ -2,7 +2,7 @@
   "name": "neura-vscode",
   "displayName": "Neura",
   "description": "The Neura development environment: language intelligence, build, run, tests, debugging, and circuit tools.",
-  "version": "0.1.1",
+  "version": "0.3.0",
   "publisher": "Kayyo321",
   "license": "Apache-2.0",
   "repository": {
@@ -974,7 +974,7 @@
           {
             "id": "project",
             "title": "Create a project",
-            "description": "[Create a console application, library, or test project.](command:neura.newProject)",
+            "description": "[Create a project](command:neura.newProject): a neura.toml project from the SDK's fullstack, web, server or desktop template, or a single-file console application, library, or test suite.",
             "media": {
               "markdown": "docs/walkthrough.md"
             },
@@ -985,12 +985,14 @@
           {
             "id": "run",
             "title": "Build and run",
-            "description": "Use the Run and Build buttons above the editor or entry point.",
+            "description": "Use the Run and Build buttons above the editor or entry point. For a neura.toml project, use Build, Develop (neura dev) and Package on its targets in the Neura view.",
             "media": {
               "markdown": "docs/walkthrough.md"
             },
             "completionEvents": [
-              "onCommand:neura.run"
+              "onCommand:neura.run",
+              "onCommand:neura.projectBuild",
+              "onCommand:neura.projectDev"
             ]
           },
           {

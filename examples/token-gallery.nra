@@ -41,7 +41,7 @@ let Account = class implements Renderable (
 );
 
 let Optional = enum<T> (None, Some(T));
-let Tree = enum (Empty, Leaf(int), Branch { left: Tree, right: Tree });
+let Span = enum (Empty, Single(int), Range { start: int, stop: int });
 
 #Pure
 let identity = func<T>(value: T) -> T => value;
@@ -55,6 +55,54 @@ let read_or_zero = func(value: Optional<int>) -> int {
 };
 
 let double = func(value: int) -> int => value * 2;
+
+// Neura 0.3.0 forms.
+/// @brief An immutable user record.
+#[Final, Since("0.3.0")]
+let User = record (id: int64, name: string);
+
+let Point = class (
+    export let x: int = 0;
+    export let y: int = 0;
+    export let init = func(x, y: int) => set;
+);
+
+let Labelled = interface (
+    let label: string;
+        | get;
+);
+
+let Shape = class implements Labelled (
+    export let label: string = "shape";
+        | get.virtual: label;
+);
+
+let Circle = class:Shape (
+    export let.override label: string;
+        | get.override: "circle of " + label;
+);
+
+let squares = iterator(count: int32) -> int32 {
+    for (let index in 0 ..= count) {
+        yield index * index;
+    }
+};
+
+let describe = func(value: any, width: int = 4) -> string {
+    return match.is (value) {
+        text: string => $"text {text:>{width}} ({nameof(User)})",
+        _ => "other",
+    };
+};
+
+let initial = func(user: User) -> uint8 {
+    defer console.print_line("checked " .. user.name);
+    let renamed = new with(user) { name: "Grace" };
+    if (not (renamed.name !== user.name)) {
+        return 'n';
+    }
+    return '\x41';
+};
 
 let Gallery = module:program.Entry (
     export let.override main = func(args: string[]) -> program.ExitCode {

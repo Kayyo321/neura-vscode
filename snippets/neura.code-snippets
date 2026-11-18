@@ -358,5 +358,179 @@
       "#Pure",
       "let ${1:double} = func(${2:value}: int) -> int => ${2:value} * 2;$0"
     ]
+  },
+  "Record": {
+    "prefix": "nra-record",
+    "body": [
+      "let ${1:User} = record (${2:id}: ${3:int64}, ${4:name}: ${5:string});$0"
+    ],
+    "description": "A record: a final, deeply immutable class with generated constructor, equals, hash_code and to_string."
+  },
+  "Copy with changes": {
+    "prefix": "nra-with",
+    "body": [
+      "new with(${1:source}) { ${2:name}: ${3:value} }$0"
+    ],
+    "description": "Copy construction of a record with replaced fields."
+  },
+  "Constructor shorthand": {
+    "prefix": "nra-init-set",
+    "body": [
+      "export let init = func(${1:x}, ${2:y}: ${3:int}) => set;$0"
+    ],
+    "description": "A constructor that stores each parameter in the field of the same name."
+  },
+  "Function with defaults": {
+    "prefix": "nra-func-default",
+    "body": [
+      "let ${1:schedule} = func(${2:job}: ${3:string}, ${4:retries}: ${5:int} = ${6:3}) -> ${7:void} {",
+      "    $0",
+      "};"
+    ],
+    "description": "A function with a constant default parameter."
+  },
+  "Generator": {
+    "prefix": "nra-iterator",
+    "body": [
+      "let ${1:squares} = iterator(${2:count}: ${3:int32}) -> ${3:int32} {",
+      "    for (let ${4:index} in 0 ..= ${2:count}) {",
+      "        yield ${4:index} * ${4:index};",
+      "    }",
+      "};$0"
+    ],
+    "description": "A generator function returning a lazy Sequence."
+  },
+  "Counted range loop": {
+    "prefix": "nra-range",
+    "body": [
+      "for (let ${1:i} in ${2:0} .. ${3:count}) {",
+      "    $0",
+      "}"
+    ],
+    "description": "A for-each over a range literal, counted without building the range."
+  },
+  "Match on type": {
+    "prefix": "nra-match-is",
+    "body": [
+      "match.is (${1:value}) {",
+      "    ${2:text}: ${3:string} => ${4:0},",
+      "    _ => ${5:1},",
+      "}"
+    ],
+    "description": "Select an arm by the type of the subject's value."
+  },
+  "Defer": {
+    "prefix": "nra-defer",
+    "body": [
+      "defer ${1:resource}.${2:close}();$0"
+    ],
+    "description": "Run one call when the block is left, by any exit."
+  },
+  "Using": {
+    "prefix": "nra-using",
+    "body": [
+      "using (${1:file} = ${2:files.open(path, files.OpenMode.Read)?}) {",
+      "    $0",
+      "}"
+    ],
+    "description": "Close a Std.Io.Closeable resource on every exit from the block (the default value needs: let files = import:Std.Fs.File;)."
+  },
+  "Interpolated string": {
+    "prefix": "nra-interp",
+    "body": [
+      "\\$\"{${1:name}}: {${2:count}:>${3:4}}\"$0"
+    ],
+    "description": "An interpolated string with holes and format specifications."
+  },
+  "Extension function": {
+    "prefix": "nra-extension",
+    "body": [
+      "export let.extension ${1:shout} = func(${2:text}: ${3:string}) -> ${3:string} {",
+      "    return ${2:text} .. \"!\";",
+      "};$0"
+    ],
+    "description": "An extension function, callable as a member where its module is enabled."
+  },
+  "Enable extensions": {
+    "prefix": "nra-extensions",
+    "body": [
+      "let.extensions ${1:text} = import:${2:TextExtensions};$0"
+    ],
+    "description": "Enable a module's extension functions in this file."
+  },
+  "Interface property": {
+    "prefix": "nra-interface-property",
+    "body": [
+      "let ${1:name}: ${2:string};",
+      "    | get;",
+      "    | set;$0"
+    ],
+    "description": "An interface property satisfied by exported fields."
+  },
+  "Virtual property": {
+    "prefix": "nra-virtual-property",
+    "body": [
+      "export let ${1:label}: ${2:string} = ${3:\"\"};",
+      "    | get.virtual: ${1:label};$0"
+    ],
+    "description": "A property whose getter subclasses may override with let.override."
+  },
+  "Property override": {
+    "prefix": "nra-override-property",
+    "body": [
+      "export let.override ${1:label}: ${2:string};",
+      "    | get.override: ${3:\"prefix \" + ${1:label}};$0"
+    ],
+    "description": "Override a base's virtual accessor."
+  },
+  "Static requirement": {
+    "prefix": "nra-static-requirement",
+    "body": [
+      "static let ${1:zero} = func() -> ${2:T};$0"
+    ],
+    "description": "A static interface requirement, called as T.zero() in generic code."
+  },
+  "JSON codec": {
+    "prefix": "nra-derive-json",
+    "body": [
+      "let ${1:UserJson} = derive json.Codec<${2:User}> {",
+      "    field ${2:User}.${3:name}: \"${4:display_name}\";",
+      "};$0"
+    ],
+    "description": "Derive a JSON codec module for a record or enum (needs: let json = import:Std.Encoding.Json;)."
+  },
+  "Startup block": {
+    "prefix": "nra-static-scope",
+    "body": [
+      "static scope {",
+      "    $0",
+      "}"
+    ],
+    "description": "Run once per execution, in source order among the file's initializers."
+  },
+  "Tag group": {
+    "prefix": "nra-tags",
+    "body": [
+      "#[${1:Final}, ${2:Since(\"0.3.0\")}]$0"
+    ],
+    "description": "Several tags on one line."
+  },
+  "HTML component": {
+    "prefix": "nra-html",
+    "body": [
+      "let ${1:item_view} = html(${2:name}: ${3:string}) {",
+      "    <${4:li}>{${2:name}}</${4:li}>",
+      "};$0"
+    ],
+    "description": "An html form: a function returning a ui.View."
+  },
+  "Stylesheet": {
+    "prefix": "nra-css",
+    "body": [
+      "const ${1:Styles} = css {",
+      "    .${2:card} { ${3:padding: 1rem;} }",
+      "};$0"
+    ],
+    "description": "A css form: a stylesheet constant."
   }
 }

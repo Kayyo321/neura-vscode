@@ -1,0 +1,14 @@
+let console = import:Std.Io.Console;
+let program = import:Std.Program;
+let User = record (id: int64, name: string);
+let App = module:program.Entry (
+    export let.override main = func(args: string[]) -> program.ExitCode {
+        let user = new User(7, "Ada");
+        let total = 0;
+        for (let index in 0 ..= 3) {
+            total += index;
+        }
+        console.print_line($"{user.name} {total}");
+        return program.ExitCode.Ok;
+    };
+);
